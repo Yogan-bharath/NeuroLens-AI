@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    border-color: theme('colors.neuro-border.DEFAULT');
+  }
+
+  body {
+    @apply bg-neuro-bg text-neuro-text-primary font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: theme('colors.neuro-surface.300');
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.neuro-surface.400');
+  }
+
+  /* Selection */
+  ::selection {
+    background: theme('colors.neuro-accent.muted');
+    color: theme('colors.neuro-accent.bright');
+  }
+}
+
+@layer components {
+  .neuro-card {
+    @apply bg-neuro-surface border border-neuro-border rounded-lg p-4;
+  }
+
+  .neuro-card-hover {
+    @apply neuro-card transition-all duration-200 hover:border-neuro-border-hover hover:shadow-neuro-sm;
+  }
+
+  .neuro-panel {
+    @apply bg-neuro-surface-200 border border-neuro-border rounded-lg;
+  }
+
+  .neuro-input {
+    @apply bg-neuro-surface-200 border border-neuro-border rounded-md px-3 py-2 text-sm
+           text-neuro-text-primary placeholder:text-neuro-text-muted
+           focus:outline-none focus:ring-2 focus:ring-neuro-accent/30 focus:border-neuro-accent
+           transition-colors duration-200;
+  }
+
+  .neuro-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium
+           bg-neuro-accent text-neuro-bg hover:bg-neuro-accent-bright
+           focus:outline-none focus:ring-2 focus:ring-neuro-accent/50 focus:ring-offset-2 focus:ring-offset-neuro-bg
+           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .neuro-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium
+           bg-neuro-surface-300 text-neuro-text-primary hover:bg-neuro-surface-400
+           border border-neuro-border hover:border-neuro-border-hover
+           focus:outline-none focus:ring-2 focus:ring-neuro-accent/30 focus:ring-offset-2 focus:ring-offset-neuro-bg
+           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .neuro-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium
+           text-neuro-text-secondary hover:text-neuro-text-primary hover:bg-neuro-surface-200
+           focus:outline-none focus:ring-2 focus:ring-neuro-accent/30
+           transition-all duration-200;
+  }
+
+  .neuro-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .neuro-badge-accent {
+    @apply neuro-badge bg-neuro-accent-muted text-neuro-accent-bright;
+  }
+
+  .neuro-badge-warning {
+    @apply neuro-badge bg-yellow-500/15 text-yellow-400;
+  }
+
+  .neuro-badge-success {
+    @apply neuro-badge bg-green-500/15 text-green-400;
+  }
+
+  .neuro-badge-error {
+    @apply neuro-badge bg-red-500/15 text-red-400;
+  }
+
+  /* Focus ring utility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-neuro-accent/40 focus:ring-offset-1 focus:ring-offset-neuro-bg;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.neuro-surface.300') transparent;
+  }
+}
