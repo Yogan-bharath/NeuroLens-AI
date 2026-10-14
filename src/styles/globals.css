@@ -2,15 +2,98 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Light Theme (Clinical Slate - Gather AI Inspired) */
+  --neuro-bg: 248 250 252;          /* #f8fafc */
+  --neuro-surface: 255 255 255;     /* #ffffff */
+  --neuro-surface-200: 241 245 249; /* #f1f5f9 */
+  --neuro-surface-300: 226 232 240; /* #e2e8f0 */
+  --neuro-surface-400: 203 213 225; /* #cbd5e1 */
+
+  --neuro-accent: 13 148 136;        /* #0d9488 */
+  --neuro-accent-dim: 15 118 110;    /* #0f766e */
+  --neuro-accent-bright: 20 184 166; /* #14b8a6 */
+  --neuro-accent-muted: 204 251 241; /* #ccfbf1 */
+
+  --neuro-cyan: 8 145 178;           /* #0891b2 */
+  --neuro-cyan-dim: 14 116 144;      /* #0e7490 */
+  --neuro-cyan-muted: 207 250 254;   /* #cffafe */
+
+  --neuro-blue: 37 99 235;           /* #2563eb */
+  --neuro-blue-dim: 29 78 216;       /* #1d4ed8 */
+  --neuro-blue-muted: 219 234 254;   /* #dbeafe */
+
+  --neuro-text-primary: 15 23 42;    /* #0f172a */
+  --neuro-text-secondary: 71 85 105; /* #475569 */
+  --neuro-text-muted: 100 116 139;   /* #64748b */
+  --neuro-text-disabled: 148 163 184;/* #94a3b8 */
+
+  --neuro-border: 226 232 240;       /* #e2e8f0 */
+  --neuro-border-hover: 203 213 225; /* #cbd5e1 */
+  --neuro-border-active: 148 163 184;/* #94a3b8 */
+
+  --neuro-success: 22 163 74;        /* #16a34a */
+  --neuro-warning: 217 119 6;        /* #d97706 */
+  --neuro-error: 220 38 38;          /* #dc2626 */
+  --neuro-info: 37 99 235;           /* #2563eb */
+
+  --neuro-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  --neuro-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --neuro-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+  --neuro-shadow-glow: 0 0 16px rgba(13, 148, 136, 0.16);
+}
+
+.dark {
+  /* Dark Theme (Midnight Slate - Non-harsh, comfortable) */
+  --neuro-bg: 15 23 42;              /* #0f172a */
+  --neuro-surface: 24 33 47;         /* #18212f */
+  --neuro-surface-200: 30 41 59;     /* #1e293b */
+  --neuro-surface-300: 42 55 77;     /* #2a374d */
+  --neuro-surface-400: 51 65 85;     /* #334155 */
+
+  --neuro-accent: 20 184 166;        /* #14b8a6 */
+  --neuro-accent-dim: 13 148 136;    /* #0d9488 */
+  --neuro-accent-bright: 45 212 191; /* #2dd4bf */
+  --neuro-accent-muted: 19 78 74;    /* rgba(20, 184, 166, 0.2) */
+
+  --neuro-cyan: 6 182 212;           /* #06b6d4 */
+  --neuro-cyan-dim: 8 145 178;       /* #0891b2 */
+  --neuro-cyan-muted: 22 78 99;      /* #164e63 */
+
+  --neuro-blue: 59 130 246;          /* #3b82f6 */
+  --neuro-blue-dim: 37 99 235;       /* #2563eb */
+  --neuro-blue-muted: 30 58 138;     /* #1e3a8a */
+
+  --neuro-text-primary: 241 245 249; /* #f1f5f9 */
+  --neuro-text-secondary: 148 163 184;/* #94a3b8 */
+  --neuro-text-muted: 100 116 139;   /* #64748b */
+  --neuro-text-disabled: 71 85 105;  /* #475569 */
+
+  --neuro-border: 39 52 75;          /* #27344b */
+  --neuro-border-hover: 55 72 100;   /* #374864 */
+  --neuro-border-active: 71 85 105;  /* #475569 */
+
+  --neuro-success: 34 197 94;        /* #22c55e */
+  --neuro-warning: 245 158 11;       /* #f59e0b */
+  --neuro-error: 239 68 68;          /* #ef4444 */
+  --neuro-info: 59 130 246;          /* #3b82f6 */
+
+  --neuro-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --neuro-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  --neuro-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3), 0 4px 6px rgba(0, 0, 0, 0.2);
+  --neuro-shadow-glow: 0 0 20px rgba(20, 184, 166, 0.15);
+}
+
 @layer base {
   * {
-    border-color: theme('colors.neuro-border.DEFAULT');
+    border-color: rgb(var(--neuro-border));
   }
 
   body {
     @apply bg-neuro-bg text-neuro-text-primary font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   /* Custom scrollbar */
@@ -24,58 +107,58 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: theme('colors.neuro-surface.300');
+    background: rgb(var(--neuro-surface-300));
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: theme('colors.neuro-surface.400');
+    background: rgb(var(--neuro-surface-400));
   }
 
   /* Selection */
   ::selection {
-    background: theme('colors.neuro-accent.muted');
-    color: theme('colors.neuro-accent.bright');
+    background: rgb(var(--neuro-accent-muted));
+    color: rgb(var(--neuro-text-primary));
   }
 }
 
 @layer components {
   .neuro-card {
-    @apply bg-neuro-surface border border-neuro-border rounded-lg p-4;
+    @apply bg-neuro-surface border border-neuro-border rounded-xl p-4 shadow-neuro-sm;
   }
 
   .neuro-card-hover {
-    @apply neuro-card transition-all duration-200 hover:border-neuro-border-hover hover:shadow-neuro-sm;
+    @apply neuro-card transition-all duration-200 hover:border-neuro-border-hover hover:shadow-neuro-md;
   }
 
   .neuro-panel {
-    @apply bg-neuro-surface-200 border border-neuro-border rounded-lg;
+    @apply bg-neuro-surface-200 border border-neuro-border rounded-xl;
   }
 
   .neuro-input {
-    @apply bg-neuro-surface-200 border border-neuro-border rounded-md px-3 py-2 text-sm
+    @apply bg-neuro-surface-200 border border-neuro-border rounded-lg px-3 py-2 text-sm
            text-neuro-text-primary placeholder:text-neuro-text-muted
            focus:outline-none focus:ring-2 focus:ring-neuro-accent/30 focus:border-neuro-accent
            transition-colors duration-200;
   }
 
   .neuro-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium
-           bg-neuro-accent text-neuro-bg hover:bg-neuro-accent-bright
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+           bg-neuro-accent text-white hover:bg-neuro-accent-dim
            focus:outline-none focus:ring-2 focus:ring-neuro-accent/50 focus:ring-offset-2 focus:ring-offset-neuro-bg
-           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm;
   }
 
   .neuro-btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium
-           bg-neuro-surface-300 text-neuro-text-primary hover:bg-neuro-surface-400
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+           bg-neuro-surface-200 text-neuro-text-primary hover:bg-neuro-surface-300
            border border-neuro-border hover:border-neuro-border-hover
            focus:outline-none focus:ring-2 focus:ring-neuro-accent/30 focus:ring-offset-2 focus:ring-offset-neuro-bg
-           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm;
   }
 
   .neuro-btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
            text-neuro-text-secondary hover:text-neuro-text-primary hover:bg-neuro-surface-200
            focus:outline-none focus:ring-2 focus:ring-neuro-accent/30
            transition-all duration-200;
@@ -86,19 +169,23 @@
   }
 
   .neuro-badge-accent {
-    @apply neuro-badge bg-neuro-accent-muted text-neuro-accent-bright;
+    @apply neuro-badge bg-neuro-accent-muted text-neuro-accent font-semibold;
   }
 
   .neuro-badge-warning {
-    @apply neuro-badge bg-yellow-500/15 text-yellow-400;
+    @apply neuro-badge bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium;
   }
 
   .neuro-badge-success {
-    @apply neuro-badge bg-green-500/15 text-green-400;
+    @apply neuro-badge bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-medium;
   }
 
   .neuro-badge-error {
-    @apply neuro-badge bg-red-500/15 text-red-400;
+    @apply neuro-badge bg-rose-500/15 text-rose-700 dark:text-rose-400 font-medium;
+  }
+
+  .neuro-divider {
+    @apply h-px bg-neuro-border w-full;
   }
 
   /* Focus ring utility */
@@ -114,6 +201,7 @@
 
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.neuro-surface.300') transparent;
+    scrollbar-color: rgb(var(--neuro-surface-300)) transparent;
   }
 }
+

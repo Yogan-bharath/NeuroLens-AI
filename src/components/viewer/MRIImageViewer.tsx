@@ -137,7 +137,7 @@ export default function MRIImageViewer({
             onClick={() => setIsSideBySide(prev => !prev)}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
               isSideBySide
-                ? 'bg-neuro-accent text-neuro-bg'
+                ? 'bg-neuro-accent text-white shadow-sm'
                 : 'bg-neuro-surface-300 text-neuro-text-secondary hover:text-neuro-text-primary'
             }`}
           >
@@ -147,9 +147,9 @@ export default function MRIImageViewer({
         )}
       </div>
 
-      {/* Viewer Canvas Area */}
+      {/* Viewer Canvas Area - dedicated dark backdrop for DICOM MRI imaging contrast */}
       <div
-        className="relative flex-1 bg-neuro-bg/90 overflow-hidden cursor-grab active:cursor-grabbing select-none"
+        className="relative flex-1 bg-slate-950 overflow-hidden cursor-grab active:cursor-grabbing select-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}

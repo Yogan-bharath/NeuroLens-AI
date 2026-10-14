@@ -35,8 +35,8 @@ function SidebarContent({ collapsed, onClose }: { collapsed: boolean; onClose?: 
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-neuro-border">
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-neuro-accent to-neuro-cyan flex items-center justify-center">
-          <Brain className="w-5 h-5 text-neuro-bg" />
+        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-neuro-accent to-neuro-cyan flex items-center justify-center shadow-sm">
+          <Brain className="w-5 h-5 text-white" />
         </div>
         <AnimatePresence>
           {!collapsed && (
@@ -72,7 +72,7 @@ function SidebarContent({ collapsed, onClose }: { collapsed: boolean; onClose?: 
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 group relative',
                 isActive
-                  ? 'bg-neuro-accent-muted text-neuro-accent-bright'
+                  ? 'bg-neuro-accent-muted text-neuro-accent dark:text-neuro-accent-bright font-semibold'
                   : 'text-neuro-text-secondary hover:text-neuro-text-primary hover:bg-neuro-surface-200'
               )}
             >
