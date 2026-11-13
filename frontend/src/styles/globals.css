@@ -1,0 +1,207 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light Theme (Clinical Slate - Gather AI Inspired) */
+  --neuro-bg: 248 250 252;          /* #f8fafc */
+  --neuro-surface: 255 255 255;     /* #ffffff */
+  --neuro-surface-200: 241 245 249; /* #f1f5f9 */
+  --neuro-surface-300: 226 232 240; /* #e2e8f0 */
+  --neuro-surface-400: 203 213 225; /* #cbd5e1 */
+
+  --neuro-accent: 13 148 136;        /* #0d9488 */
+  --neuro-accent-dim: 15 118 110;    /* #0f766e */
+  --neuro-accent-bright: 20 184 166; /* #14b8a6 */
+  --neuro-accent-muted: 204 251 241; /* #ccfbf1 */
+
+  --neuro-cyan: 8 145 178;           /* #0891b2 */
+  --neuro-cyan-dim: 14 116 144;      /* #0e7490 */
+  --neuro-cyan-muted: 207 250 254;   /* #cffafe */
+
+  --neuro-blue: 37 99 235;           /* #2563eb */
+  --neuro-blue-dim: 29 78 216;       /* #1d4ed8 */
+  --neuro-blue-muted: 219 234 254;   /* #dbeafe */
+
+  --neuro-text-primary: 15 23 42;    /* #0f172a */
+  --neuro-text-secondary: 71 85 105; /* #475569 */
+  --neuro-text-muted: 100 116 139;   /* #64748b */
+  --neuro-text-disabled: 148 163 184;/* #94a3b8 */
+
+  --neuro-border: 226 232 240;       /* #e2e8f0 */
+  --neuro-border-hover: 203 213 225; /* #cbd5e1 */
+  --neuro-border-active: 148 163 184;/* #94a3b8 */
+
+  --neuro-success: 22 163 74;        /* #16a34a */
+  --neuro-warning: 217 119 6;        /* #d97706 */
+  --neuro-error: 220 38 38;          /* #dc2626 */
+  --neuro-info: 37 99 235;           /* #2563eb */
+
+  --neuro-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  --neuro-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --neuro-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+  --neuro-shadow-glow: 0 0 16px rgba(13, 148, 136, 0.16);
+}
+
+.dark {
+  /* Dark Theme — Aligned with Stitch NeuroLens Scientific Precision Workspace */
+  --neuro-bg: 12 19 33;              /* #0c1321 - Canvas base */
+  --neuro-surface: 21 27 42;         /* #151b2a - Surface container low */
+  --neuro-surface-200: 25 32 46;     /* #19202e - Surface container */
+  --neuro-surface-300: 35 42 57;     /* #232a39 - Surface container high */
+  --neuro-surface-400: 46 53 68;     /* #2e3544 - Surface container highest */
+
+  --neuro-accent: 40 199 183;        /* #28c7b7 - Primary precision teal */
+  --neuro-accent-dim: 0 106 97;      /* #006a61 */
+  --neuro-accent-bright: 82 227 211; /* #52e3d3 */
+  --neuro-accent-muted: 15 55 50;    /* rgba(40, 199, 183, 0.15) */
+
+  --neuro-cyan: 102 214 229;         /* #66d6e5 - Secondary precision cyan */
+  --neuro-cyan-dim: 26 159 174;      /* #1a9fae */
+  --neuro-cyan-muted: 15 50 60;      /* rgba(102, 214, 229, 0.15) */
+
+  --neuro-blue: 59 130 246;          /* #3b82f6 */
+  --neuro-blue-dim: 37 99 235;       /* #2563eb */
+  --neuro-blue-muted: 30 58 138;     /* #1e3a8a */
+
+  --neuro-text-primary: 232 237 242; /* #e8edf2 - Crisp reading contrast */
+  --neuro-text-secondary: 145 162 184;/* #91a2b8 - Structural metadata */
+  --neuro-text-muted: 110 126 148;   /* #6e7e94 */
+  --neuro-text-disabled: 70 82 100;  /* #465264 */
+
+  --neuro-border: 45 56 75;          /* rgba(145, 162, 184, 0.18) */
+  --neuro-border-hover: 70 85 110;   /* rgba(145, 162, 184, 0.30) */
+  --neuro-border-active: 40 199 183; /* #28c7b7 */
+
+  --neuro-success: 40 199 183;       /* #28c7b7 */
+  --neuro-warning: 230 174 84;       /* #e6ae54 */
+  --neuro-error: 229 108 118;        /* #e56c76 */
+  --neuro-info: 102 214 229;         /* #66d6e5 */
+
+  --neuro-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --neuro-shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  --neuro-shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.6);
+  --neuro-shadow-glow: 0 0 20px rgba(40, 199, 183, 0.16);
+}
+
+@layer base {
+  * {
+    border-color: rgb(var(--neuro-border));
+  }
+
+  body {
+    @apply bg-neuro-bg text-neuro-text-primary font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--neuro-surface-300));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--neuro-surface-400));
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgb(var(--neuro-accent-muted));
+    color: rgb(var(--neuro-text-primary));
+  }
+}
+
+@layer components {
+  .neuro-card {
+    @apply bg-neuro-surface border border-neuro-border rounded-xl p-4 shadow-neuro-sm;
+  }
+
+  .neuro-card-hover {
+    @apply neuro-card transition-all duration-200 hover:border-neuro-border-hover hover:shadow-neuro-md;
+  }
+
+  .neuro-panel {
+    @apply bg-neuro-surface-200 border border-neuro-border rounded-xl;
+  }
+
+  .neuro-input {
+    @apply bg-neuro-surface-200 border border-neuro-border rounded-lg px-3 py-2 text-sm
+           text-neuro-text-primary placeholder:text-neuro-text-muted
+           focus:outline-none focus:ring-2 focus:ring-neuro-accent/30 focus:border-neuro-accent
+           transition-colors duration-200;
+  }
+
+  .neuro-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+           bg-neuro-accent text-white hover:bg-neuro-accent-dim
+           focus:outline-none focus:ring-2 focus:ring-neuro-accent/50 focus:ring-offset-2 focus:ring-offset-neuro-bg
+           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm;
+  }
+
+  .neuro-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+           bg-neuro-surface-200 text-neuro-text-primary hover:bg-neuro-surface-300
+           border border-neuro-border hover:border-neuro-border-hover
+           focus:outline-none focus:ring-2 focus:ring-neuro-accent/30 focus:ring-offset-2 focus:ring-offset-neuro-bg
+           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm;
+  }
+
+  .neuro-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+           text-neuro-text-secondary hover:text-neuro-text-primary hover:bg-neuro-surface-200
+           focus:outline-none focus:ring-2 focus:ring-neuro-accent/30
+           transition-all duration-200;
+  }
+
+  .neuro-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .neuro-badge-accent {
+    @apply neuro-badge bg-neuro-accent-muted text-neuro-accent font-semibold;
+  }
+
+  .neuro-badge-warning {
+    @apply neuro-badge bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium;
+  }
+
+  .neuro-badge-success {
+    @apply neuro-badge bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-medium;
+  }
+
+  .neuro-badge-error {
+    @apply neuro-badge bg-rose-500/15 text-rose-700 dark:text-rose-400 font-medium;
+  }
+
+  .neuro-divider {
+    @apply h-px bg-neuro-border w-full;
+  }
+
+  /* Focus ring utility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-neuro-accent/40 focus:ring-offset-1 focus:ring-offset-neuro-bg;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--neuro-surface-300)) transparent;
+  }
+}
+
