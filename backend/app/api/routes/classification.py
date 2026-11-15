@@ -35,8 +35,10 @@ async def list_classification_models():
 @router.post("/analyze", summary="Run 2D Brain MRI tumor classification with Grad-CAM")
 async def analyze_2d_mri(
     image: UploadFile = File(..., description="2D Brain MRI scan in PNG or JPEG format"),
-    model_id: str = Form("efficientnetv2b0", description="Selected classification model identifier"),
+    model_id: Optional[str] = Form(None, description="Selected classification model identifier"),
     use_clahe: Optional[bool] = Form(None, description="Optional Contrast Limited Adaptive Histogram Equalization"),
+    explain_segmentation: bool = Form(False, description="Whether to generate Seg-Grad-CAM explanation for 2D tumor segmentation"),
+    explain_layer: Optional[str] = Form(None, description="Target layer for 2D Seg-Grad-CAM (e.g. conv2d_20 or up_sampling2d_2)"),
     current_user: UserDB = Depends(get_current_user_or_default),
 ):
     """
@@ -68,11 +70,13 @@ async def analyze_2d_mri(
             detail=f"File exceeds maximum allowed size of {MAX_IMAGE_SIZE_BYTES // (1024 * 1024)} MiB.",
         )
 
+    effective_model_id = model_id or settings.DEFAULT_CLASSIFIER
+
     # Validate that model checkpoint exists
-    if not model_loader.has_classification_model_for(model_id):
-        status_info = model_loader.get_status().get("classification_models", {}).get(model_id, {})
+    if not model_loader.has_classification_model_for(effective_model_id):
+        status_info = model_loader.get_status().get("classification_models", {}).get(effective_model_id, {})
         err_detail = status_info.get("reason") or status_info.get("error") or (
-            f"Classification model '{model_id}' trained checkpoint is not installed on the server. "
+            f"Classification model '{effective_model_id}' trained checkpoint is not installed on the server. "
             f"Available models with checkpoints: EfficientNetV2B0."
         )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err_detail)
@@ -84,7 +88,7 @@ async def analyze_2d_mri(
         # 1. Run Classification inference
         cls_result = await classification_service.predict(
             image_bytes=content,
-            model_id=model_id,
+            model_id=effective_model_id,
             use_clahe=use_clahe,
         )
 
@@ -93,13 +97,16 @@ async def analyze_2d_mri(
         gradcam_pp_overlay = None
         explanations_list = []
 
-        target_layer = "swin_transformer_block_7" if model_id == "swin_transformer" else "top_conv"
+        target_layer = (
+            "top_activation" if effective_model_id == "efficientnetv2b0_256"
+            else ("swin_transformer_block_7" if effective_model_id == "swin_transformer" else "top_conv")
+        )
         try:
             xai_result = await explainability_service.generate_explanation(
                 image_bytes=content,
                 analysis_id=prediction_id,
                 method="gradcam",
-                model_id=model_id,
+                model_id=effective_model_id,
                 target_layer=target_layer,
                 target_class=cls_result.get("predicted_class"),
             )
@@ -111,14 +118,15 @@ async def analyze_2d_mri(
             logger.warning(f"Grad-CAM generation failed: {xai_err}")
 
         # If model is EfficientNetV2B0, precompute Grad-CAM++ so it is immediately available
-        if model_id == "efficientnetv2b0":
+        if effective_model_id in ("efficientnetv2b0", "efficientnetv2b0_256"):
             try:
+                pp_layer = "top_activation" if effective_model_id == "efficientnetv2b0_256" else "top_conv"
                 xai_pp_result = await explainability_service.generate_explanation(
                     image_bytes=content,
                     analysis_id=prediction_id,
                     method="gradcam_pp",
-                    model_id=model_id,
-                    target_layer="top_conv",
+                    model_id=effective_model_id,
+                    target_layer=pp_layer,
                     target_class=cls_result.get("predicted_class"),
                 )
                 gradcam_pp_overlay = xai_pp_result.get("overlay_url")
@@ -134,16 +142,26 @@ async def analyze_2d_mri(
         segmentation_model_used = None
         segmentation_tumor_detected = None
         segmentation_tumor_area_pct = None
+        explain_segmentation_url = None
+        explain_segmentation_layer = None
+        explain_segmentation_feature_map = None
+        explain_segmentation_caption = None
         try:
             seg_result = await segmentation_2d_service.segment_2d(
                 image_bytes=content,
                 analysis_id=prediction_id,
+                explain=explain_segmentation,
+                explain_layer=explain_layer,
             )
             segmentation_mask_url = seg_result.get("mask_url")
             segmentation_overlay_url = seg_result.get("overlay_url")
             segmentation_model_used = seg_result.get("model_used")
             segmentation_tumor_detected = seg_result.get("tumor_detected")
             segmentation_tumor_area_pct = seg_result.get("tumor_area_pct")
+            explain_segmentation_url = seg_result.get("explain_url")
+            explain_segmentation_layer = seg_result.get("explain_layer")
+            explain_segmentation_feature_map = seg_result.get("explain_feature_map")
+            explain_segmentation_caption = seg_result.get("explain_caption")
         except Exception as seg_err:
             logger.warning(f"2D tumor segmentation failed (non-fatal): {seg_err}")
 
@@ -174,20 +192,24 @@ async def analyze_2d_mri(
             "segmentation_model_used": segmentation_model_used,
             "segmentation_tumor_detected": segmentation_tumor_detected,
             "segmentation_tumor_area_pct": segmentation_tumor_area_pct,
+            "explain_segmentation_url": explain_segmentation_url,
+            "explain_segmentation_layer": explain_segmentation_layer,
+            "explain_segmentation_feature_map": explain_segmentation_feature_map,
+            "explain_segmentation_caption": explain_segmentation_caption,
             "explanations": explanations_list,
             "processing_time_ms": duration_ms,
             "actual_model": cls_result.get("actual_model"),
-            "model_id": model_id,
-            "model_name": cls_result.get("model_name", model_id),
-            "model_version": cls_result.get("model_version", "v2.4.0"),
+            "model_id": effective_model_id,
+            "model_name": cls_result.get("model_name", effective_model_id),
+            "model_version": cls_result.get("model_version", "v2.5.0-clahe256"),
         }
         analysis_id = await analysis_service.save_classification_analysis(
             user_id=user_id,
             inference_result=raw_result,
             filename=filename,
-            model_id=model_id,
-            model_name=cls_result.get("model_name", model_id),
-            model_version=cls_result.get("model_version", "v2.4.0"),
+            model_id=effective_model_id,
+            model_name=cls_result.get("model_name", effective_model_id),
+            model_version=cls_result.get("model_version", "v2.5.0-clahe256"),
             actual_model=cls_result.get("actual_model"),
             image_bytes=content,
         )
