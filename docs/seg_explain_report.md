@@ -101,3 +101,4 @@ Using `scripts/check_seg_explain.py`, the real `backend/model_artifacts/deeplabv
    - `backend/model_artifacts/EfficientNetV2B0_clahe_256.keras`: Verified live on real MRI scan. Output: `predicted_class: 'Meningioma'`, `confidence: 0.99995`, layer `top_activation` shape `(8, 8, 1280)`.
 3. **Frontend Build Verification**:
    - `npm run build` (`tsc && vite build`): **PASSED** with 0 errors.
+

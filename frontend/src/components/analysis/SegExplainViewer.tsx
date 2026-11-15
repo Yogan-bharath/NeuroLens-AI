@@ -128,7 +128,6 @@ export const SegExplainViewer: React.FC<SegExplainViewerProps> = ({
     return 'mix-blend-normal';
   };
 
-  const isDegenerate = stats?.degenerate || !isAvailable;
   const isFineLayer = (selectedLayer || layerName) === 'up_sampling2d_2';
 
   return (
@@ -181,7 +180,7 @@ export const SegExplainViewer: React.FC<SegExplainViewerProps> = ({
 
       {/* Main Heatmap Viewport */}
       <div className="relative aspect-square max-h-[400px] w-full rounded-lg bg-black overflow-hidden border border-neuro-border flex items-center justify-center">
-        {isDegenerate || !heatmapUrl ? (
+        {!heatmapUrl ? (
           <div className="p-6 rounded-lg bg-black/60 border border-neuro-border/60 text-center space-y-2 max-w-[85%]">
             <AlertCircle className="w-8 h-8 text-amber-400 mx-auto opacity-80" />
             <p className="text-xs font-semibold text-white">
@@ -245,7 +244,7 @@ export const SegExplainViewer: React.FC<SegExplainViewerProps> = ({
       </div>
 
       {/* Jet Colormap Legend Bar */}
-      {!isDegenerate && heatmapUrl && (
+      {Boolean(heatmapUrl) && (
         <div className="space-y-1 pt-1">
           <div className="h-2 w-full rounded-full bg-gradient-to-r from-blue-700 via-cyan-400 via-yellow-400 to-red-600 shadow-inner border border-white/10" />
           <div className="flex justify-between items-center font-mono text-[10px] text-neuro-text-muted">

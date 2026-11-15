@@ -130,19 +130,6 @@ def generate_segmentation_explanation(
 
     stats = heat_stats(cam, pred_mask)
 
-    if stats.get("degenerate", False):
-        return {
-            "available": False,
-            "reason": "Degenerate heatmap: activation gradients across layer are constant or near-zero.",
-            "layer": target_layer,
-            "map_shape": map_shape_str,
-            "method": "SEG-GRADCAM",
-            "stats": stats,
-            "heatmap_png": None,
-            "caption": "Shows which features drove the total predicted tumor area. The score is the predicted tumor area, so hot regions usually overlap the mask; the map is coarse (16 x 16) and is not a tumor boundary.",
-            "disclaimer": "Research/educational use only. Not clinically validated.",
-        }
-
     rgba = heatmap_rgba(cam)
     png_bytes = encode_png_rgba(rgba)
     b64_str = base64.b64encode(png_bytes).decode("ascii")
