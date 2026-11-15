@@ -209,8 +209,11 @@ export default function ExplainabilityPage() {
   const processingTimeMs = actualModel.inference_time_ms || analysisData?.processing_time_ms || analysisData?.metadata?.processingTimeMs || 0;
   const architecture = actualModel.architecture || (isSwin ? 'Hierarchical Shifted-Window Transformer (Shifted-Window Self-Attention + Patch Merging)' : 'EfficientNetV2-B0 (Fused-MBConv + Squeeze-and-Excitation)');
   const parametersCount = actualModel.parameters_count || (isSwin ? '28.3M params' : '7.11M params');
-  const targetLayerDisplay = isSwin ? 'swin_transformer_block_7' : 'top_conv (1280 channels)';
-  const inputResolution = actualModel.input_resolution || (isSwin ? '224 × 224 × 3 RGB' : '128 × 128 × 3 RGB');
+  const modelId = actualModel.model_id || analysisData?.model_id || (isSwin ? 'swin_transformer' : (modelName.includes('256') ? 'efficientnetv2b0_256' : 'efficientnetv2b0'));
+  const isEff256 = modelId === 'efficientnetv2b0_256' || modelName.includes('256') || Boolean(actualModel.input_resolution?.includes('256'));
+  const targetLayerDisplay = analysisData?.explanations?.[0]?.layerName || (isSwin ? 'swin_transformer_block_7' : (isEff256 ? 'top_activation' : 'top_conv'));
+  const featureMapDisplay = analysisData?.explanations?.[0]?.featureMapShape || (isSwin ? '7 × 7 × 768' : (isEff256 ? '8 × 8 × 1280' : '8 × 8'));
+  const inputResolution = actualModel.input_resolution || (isSwin ? '224 × 224 × 3 RGB' : (isEff256 ? '256 × 256 × 3 RGB' : '128 × 128 × 3 RGB'));
   const framework = actualModel.framework || 'TensorFlow 2.18 / Keras 3';
 
   // Real 2D Image & Heatmaps
@@ -636,7 +639,7 @@ export default function ExplainabilityPage() {
                 <span className="font-mono text-[10px] text-neuro-accent px-1.5 py-0.5 bg-neuro-accent/10 rounded uppercase font-semibold">
                   {selectedMethod === 'segmentation'
                     ? `MODEL: ${analysisData?.segmentation_model_used === 'deeplabv3plus' ? 'DEEPLABV3+' : 'BRISC U-NET'}`
-                    : `LAYER: ${isSwin ? 'SWIN_BLOCK_7' : 'TOP_CONV'}`}
+                    : `LAYER: ${targetLayerDisplay} · MAP: ${featureMapDisplay}`}
                 </span>
               </div>
 
@@ -824,11 +827,15 @@ export default function ExplainabilityPage() {
               </div>
 
               <p className="text-[11px] text-neuro-text-secondary leading-relaxed">
-                {selectedMethod === 'gradcam_pp' ? 'Grad-CAM++' : 'Grad-CAM'} computes the gradient of the predicted class score ({topPrediction}) with respect to the feature map activations of layer <code className="text-neuro-accent">{isSwin ? 'swin_transformer_block_7' : 'top_conv'}</code> of the {modelName} model.
+                {selectedMethod === 'gradcam_pp' ? 'Grad-CAM++' : 'Grad-CAM'} computes the gradient of the predicted class score ({topPrediction}) with respect to the feature map activations of layer <code className="text-neuro-accent">{targetLayerDisplay}</code> ({featureMapDisplay}) of the {modelName} model.
               </p>
               <p className="text-[11px] text-neuro-text-muted leading-relaxed">
                 Warm highlights represent regions where visual textures (such as contrast enhancement or irregular boundaries) exerted maximal positive influence on the classification output.
               </p>
+
+              <div className="text-[10px] text-amber-400/90 font-mono bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded">
+                Research/educational use only. Not clinically validated. Saliency highlights coarse regions influencing prediction.
+              </div>
 
               <div className="pt-2 border-t border-neuro-border/40 flex items-center justify-between text-[10px] font-mono text-neuro-text-muted">
                 <span>Status: Fully Model-Derived</span>

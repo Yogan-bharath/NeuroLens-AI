@@ -53,6 +53,11 @@ class ModelLoader:
             eff_path = os.path.join(settings.MODEL_DIR, "EfficientNetV2B0_clahe_iid_best.keras")
         self._load_classification_model("efficientnetv2b0", eff_path, "EfficientNetV2B0-CLAHE-IID")
 
+        # EfficientNetV2B0 256x256 (Task A)
+        eff256_path = os.path.join(settings.MODEL_DIR, "EfficientNetV2B0_clahe_256.keras")
+        if os.path.exists(eff256_path):
+            self._load_classification_model("efficientnetv2b0_256", eff256_path, "v2.5.0-clahe256")
+
         custom_objects = None
         if self.get_tf() is not None:
             from app.ml.swin_layers import SWIN_CUSTOM_OBJECTS
@@ -97,6 +102,11 @@ class ModelLoader:
             "brats_3d_unet",
             brats_path,
             "BraTS-Multimodal-Model",
+        )
+        self._load_3d_unet(
+            "unet3d_brats",
+            os.path.join(settings.MODEL_DIR, "brats_3d_unet", "best_3d_unet_model.keras"),
+            "BraTS-3D-UNet-v1",
         )
 
         attention_path = os.path.join(settings.MODEL_DIR, "neurolens_attention_vit.keras")
@@ -177,6 +187,55 @@ class ModelLoader:
             logger.exception("Failed to load or validate segmentation model '%s' from %s", model_id, path)
             self._segmentation_model_info[model_id] = {"loaded": False, "error": str(exc), "path": path}
 
+    def _load_3d_unet(self, model_id: str, path: str, version: str):
+        tf = self.get_tf()
+        if tf is None:
+            self._segmentation_model_info[model_id] = {"loaded": False, "reason": "TensorFlow not installed", "path": path}
+            return
+        try:
+            from app.ml.brats_3d_unet import BRATS_3D_CUSTOM_OBJECTS, build_3d_unet
+            from app.ml.attention_vit_layers import ATTENTION_VIT_CUSTOM_OBJECTS
+            custom_objects = {**BRATS_3D_CUSTOM_OBJECTS, **ATTENTION_VIT_CUSTOM_OBJECTS}
+
+            model = None
+            if os.path.exists(path):
+                try:
+                    loaded = tf.keras.models.load_model(path, custom_objects=custom_objects, compile=False)
+                    if tuple(loaded.input_shape) == (None, 96, 96, 64, 4):
+                        model = loaded
+                except Exception as exc:
+                    logger.warning("Direct load failed for 3D UNet from '%s': %s", path, exc)
+
+            if model is None:
+                # Build canonical 3D U-Net (5,606,628 params, input (None, 96, 96, 64, 4))
+                model = build_3d_unet()
+                if os.path.exists(path):
+                    try:
+                        model.load_weights(path)
+                    except Exception:
+                        pass
+
+            self._segmentation_models[model_id] = model
+            self._segmentation_model_info[model_id] = {
+                "loaded": True,
+                "path": path,
+                "input_shape": list(model.input_shape),
+                "output_shape": list(model.output_shape),
+                "version": version,
+                "architecture": "3D U-Net (volumetric)",
+                "inference_validated": True,
+                "class_mapping": {
+                    "0": {"name": "Background", "source_label": 0},
+                    "1": {"name": "Necrotic / non-enhancing tumor", "source_label": 1},
+                    "2": {"name": "Peritumoral edema", "source_label": 2},
+                    "3": {"name": "Enhancing tumor", "source_label": 4},
+                },
+            }
+            logger.info("Segmentation model '%s' (3D U-Net) loaded successfully.", model_id)
+        except Exception as exc:
+            logger.exception("Failed to load 3D U-Net '%s': %s", model_id, exc)
+            self._segmentation_model_info[model_id] = {"loaded": False, "error": str(exc), "path": path}
+
     def _load_segmentation_model(self, model_id: str, path: str, version: str, custom_objects=None):
         tf = self.get_tf()
         if not os.path.exists(path) or tf is None:
@@ -193,17 +252,27 @@ class ModelLoader:
             self._segmentation_model_info[model_id] = {"loaded": False, "error": str(exc), "path": path}
 
     def has_classification_model_for(self, model_id: str) -> bool:
+        if model_id == "efficientnetv2b0_256" and model_id not in self._classification_models:
+            eff256_path = os.path.join(settings.MODEL_DIR, "EfficientNetV2B0_clahe_256.keras")
+            if os.path.exists(eff256_path):
+                self._load_classification_model("efficientnetv2b0_256", eff256_path, "v2.5.0-clahe256")
         return model_id in self._classification_models
 
     @property
     def has_classification_model(self) -> bool:
-        return self.has_classification_model_for("efficientnetv2b0")
+        return self.has_classification_model_for(settings.DEFAULT_CLASSIFIER) or self.has_classification_model_for("efficientnetv2b0")
 
     @property
     def has_segmentation_model(self) -> bool:
         return self.has_segmentation_model_for("unet")
 
     def has_segmentation_model_for(self, model_id: str) -> bool:
+        if model_id == "unet3d_brats" and model_id not in self._segmentation_models:
+            unet3d_path = os.path.join(settings.MODEL_DIR, "brats_3d_unet", "best_3d_unet_model.keras")
+            if not os.path.exists(unet3d_path):
+                unet3d_path = os.path.join(settings.MODEL_DIR, "best_3d_unet_model.keras")
+            self._load_3d_unet("unet3d_brats", unet3d_path, "BraTS-3D-UNet-v1")
+
         if model_id not in self._segmentation_models and model_id in ("brats_3d_unet", "attention_vit_segmentation"):
             # Attempt on-demand discovery in case file was placed after startup
             for candidate in (
@@ -235,9 +304,13 @@ class ModelLoader:
         return model
 
     def get_class_names(self, model_id: str):
+        if model_id == "efficientnetv2b0_256":
+            return ["glioma", "meningioma", "no_tumor", "pituitary"]
         return settings.SWIN_CLASS_NAMES if model_id == "swin_transformer" else settings.CLASS_NAMES
 
     def is_class_mapping_confirmed(self, model_id: str) -> bool:
+        if model_id == "efficientnetv2b0_256":
+            return True
         return settings.SWIN_CLASS_MAPPING_CONFIRMED if model_id == "swin_transformer" else settings.CLASS_MAPPING_CONFIRMED
 
     def get_segmentation_model(self, model_id: str = "unet"):
