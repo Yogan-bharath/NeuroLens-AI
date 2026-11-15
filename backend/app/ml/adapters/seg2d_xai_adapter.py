@@ -14,7 +14,7 @@ import numpy as np
 from typing import Dict, Any, Tuple, Optional
 from PIL import Image
 
-from reference.seg2d_xai import (
+from app.ml.seg2d_xai import (
     resolve_layers as ref_resolve_layers,
     feature_map_shape as ref_feature_map_shape,
     seg_gradcam as ref_seg_gradcam,

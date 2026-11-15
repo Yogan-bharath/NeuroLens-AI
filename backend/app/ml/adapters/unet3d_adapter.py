@@ -17,7 +17,7 @@ import tensorflow as tf
 from typing import Dict, Any, Tuple, Optional, Callable, Sequence
 import nibabel as nib
 
-from reference.unet3d import (
+from app.ml.unet3d import (
     PATCH_SHAPE,
     STRIDE,
     MODALITIES,

@@ -13,8 +13,8 @@ import tensorflow as tf
 from typing import Dict, Any, Tuple, Optional
 from PIL import Image
 
-# Import verified math from reference module
-from reference.classifier_efficientnet256 import (
+# Import verified math from internal app.ml module
+from app.ml.classifier_efficientnet256 import (
     CLASS_NAMES as REF_CLASS_NAMES,
     INPUT_SIZE,
     GRADCAM_LAYER,

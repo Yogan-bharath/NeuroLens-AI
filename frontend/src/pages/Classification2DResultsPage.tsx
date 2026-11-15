@@ -25,6 +25,7 @@ import { getAnalysisById, generate2DSegmentation } from '@/services/api';
 import { formatPercentage, formatDate } from '@/lib/utils';
 import ExportReportButton from '@/components/common/ExportReportButton';
 import { extractNormalizedScores } from '@/lib/scoreUtils';
+import { SegExplainViewer } from '@/components/analysis/SegExplainViewer';
 
 export default function Classification2DResultsPage() {
   const { analysisId } = useParams<{ analysisId: string }>();
@@ -39,6 +40,8 @@ export default function Classification2DResultsPage() {
   const [segViewMode, setSegViewMode] = useState<'overlay' | 'mask' | 'explain'>('overlay');
   const [isGeneratingSeg, setIsGeneratingSeg] = useState<boolean>(false);
   const [segError, setSegError] = useState<string | null>(null);
+  const [selectedSegLayer, setSelectedSegLayer] = useState<string>('conv2d_20');
+  const [isLoadingSegLayer, setIsLoadingSegLayer] = useState<boolean>(false);
 
   useEffect(() => {
     if (!analysisId) {
@@ -144,16 +147,12 @@ export default function Classification2DResultsPage() {
     setIsGeneratingSeg(true);
     setSegError(null);
     try {
-      const res = await generate2DSegmentation(analysisId);
+      const res = await generate2DSegmentation(analysisId, selectedSegLayer);
       setAnalysisData((prev: any) =>
         prev
           ? {
               ...prev,
-              segmentation_mask_url: res.segmentation_mask_url,
-              segmentation_overlay_url: res.segmentation_overlay_url,
-              segmentation_model_used: res.segmentation_model_used,
-              segmentation_tumor_detected: res.segmentation_tumor_detected,
-              segmentation_tumor_area_pct: res.segmentation_tumor_area_pct,
+              ...res,
             }
           : prev
       );
@@ -161,6 +160,27 @@ export default function Classification2DResultsPage() {
       setSegError(err instanceof Error ? err.message : 'Failed to generate tumor segmentation.');
     } finally {
       setIsGeneratingSeg(false);
+    }
+  };
+
+  const handleExplainLayerChange = async (newLayer: string) => {
+    if (!analysisId || isLoadingSegLayer) return;
+    setSelectedSegLayer(newLayer);
+    setIsLoadingSegLayer(true);
+    try {
+      const res = await generate2DSegmentation(analysisId, newLayer);
+      setAnalysisData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              ...res,
+            }
+          : prev
+      );
+    } catch (err) {
+      console.error('Failed to update Seg-Grad-CAM layer', err);
+    } finally {
+      setIsLoadingSegLayer(false);
     }
   };
 
@@ -422,40 +442,73 @@ export default function Classification2DResultsPage() {
             </div>
 
             {segmentationOverlayUrl || segmentationMaskUrl ? (
-              <>
-                <div className="relative aspect-square max-h-[400px] w-full rounded-lg bg-black overflow-hidden border border-neuro-border flex items-center justify-center">
-                  <img
-                    src={
-                      segViewMode === 'explain'
-                        ? (analysisData.explain_segmentation_url || segmentationOverlayUrl)
-                        : (segViewMode === 'mask' ? (segmentationMaskUrl || segmentationOverlayUrl) : (segmentationOverlayUrl || segmentationMaskUrl))
-                    }
-                    alt="Predicted Tumor Segmentation"
-                    className="w-full h-full object-contain"
-                  />
-                  <div className="absolute top-2 left-2 pointer-events-none font-mono text-[10px] text-red-400 bg-black/70 px-2 py-1 rounded border border-white/10">
-                    <div>{segViewMode === 'explain' ? 'SEG-GRAD-CAM EXPLAIN' : 'SEGMENTATION MASK'}</div>
-                    <div className="text-neuro-text-muted">
-                      {segViewMode === 'explain'
-                        ? `LAYER: ${analysisData.explain_segmentation_layer || 'conv2d_20'} · MAP: ${analysisData.explain_segmentation_feature_map || '16 × 16 × 256'}`
-                        : (segViewMode === 'mask' ? 'MODE: BINARY MASK' : 'MODE: MRI + TUMOR OVERLAY')}
+              segViewMode === 'explain' ? (
+                <SegExplainViewer
+                  originalImage={originalImage}
+                  heatmapUrl={
+                    analysisData.explain_segmentation_url ||
+                    analysisData.explain_segmentation_heatmap_png ||
+                    analysisData.explain?.heatmap_png
+                  }
+                  maskUrl={segmentationMaskUrl}
+                  layerName={
+                    analysisData.explain_segmentation_layer ||
+                    analysisData.explain?.layer ||
+                    selectedSegLayer
+                  }
+                  featureMapShape={
+                    analysisData.explain_segmentation_feature_map ||
+                    analysisData.explain?.map_shape ||
+                    (selectedSegLayer === 'up_sampling2d_2' ? '256 × 256 × 256' : '16 × 16 × 256')
+                  }
+                  isAvailable={
+                    analysisData.explain_segmentation_available !== false &&
+                    analysisData.explain?.available !== false
+                  }
+                  unavailableReason={
+                    analysisData.explain?.reason || analysisData.explain_segmentation_reason
+                  }
+                  blendMode={blendMode}
+                  opacity={camOpacity}
+                  stats={
+                    analysisData.explain_segmentation_stats || analysisData.explain?.stats
+                  }
+                  onLayerChange={handleExplainLayerChange}
+                  selectedLayer={selectedSegLayer}
+                  isLoadingLayer={isLoadingSegLayer}
+                />
+              ) : (
+                <>
+                  <div className="relative aspect-square max-h-[400px] w-full rounded-lg bg-black overflow-hidden border border-neuro-border flex items-center justify-center">
+                    <img
+                      src={
+                        segViewMode === 'mask'
+                          ? (segmentationMaskUrl || segmentationOverlayUrl)
+                          : (segmentationOverlayUrl || segmentationMaskUrl)
+                      }
+                      alt="Predicted Tumor Segmentation"
+                      className="w-full h-full object-contain"
+                    />
+                    <div className="absolute top-2 left-2 pointer-events-none font-mono text-[10px] text-red-400 bg-black/70 px-2 py-1 rounded border border-white/10">
+                      <div>SEGMENTATION MASK</div>
+                      <div className="text-neuro-text-muted">
+                        {segViewMode === 'mask' ? 'MODE: BINARY MASK' : 'MODE: MRI + TUMOR OVERLAY'}
+                      </div>
                     </div>
+                    {typeof segmentationTumorAreaPct === 'number' && (
+                      <div className="absolute bottom-2 right-2 pointer-events-none font-mono text-[10px] text-white bg-black/70 px-2 py-0.5 rounded border border-white/10">
+                        TUMOR AREA: <span className="text-red-400 font-bold">{segmentationTumorAreaPct.toFixed(2)}%</span>
+                      </div>
+                    )}
                   </div>
-                  {typeof segmentationTumorAreaPct === 'number' && (
-                    <div className="absolute bottom-2 right-2 pointer-events-none font-mono text-[10px] text-white bg-black/70 px-2 py-0.5 rounded border border-white/10">
-                      TUMOR AREA: <span className="text-red-400 font-bold">{segmentationTumorAreaPct.toFixed(2)}%</span>
-                    </div>
-                  )}
-                </div>
-                <p className="text-[11px] text-neuro-text-muted">
-                  {segViewMode === 'explain'
-                    ? (analysisData.explain_segmentation_caption || 'Shows which features drove the total predicted tumor area.')
-                    : 'Red highlight and amber contour indicate the tumor region predicted by the segmentation model (threshold > 0.5, independent of Grad-CAM).'}
-                </p>
-                <div className="text-[10px] text-amber-400/90 font-mono bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded">
-                  Research/educational use only. Not clinically validated.
-                </div>
-              </>
+                  <p className="text-[11px] text-neuro-text-muted">
+                    Red highlight and amber contour indicate the tumor region predicted by the segmentation model (threshold &gt; 0.5, independent of Grad-CAM).
+                  </p>
+                  <div className="text-[10px] text-amber-400/90 font-mono bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded">
+                    Research/educational use only. Not clinically validated.
+                  </div>
+                </>
+              )
             ) : (
               <div className="p-6 rounded-lg bg-black/40 border border-neuro-border/60 text-center space-y-3">
                 <Scan className="w-8 h-8 text-neuro-text-muted mx-auto opacity-50" />

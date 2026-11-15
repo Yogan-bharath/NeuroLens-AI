@@ -47,11 +47,11 @@ interface ConfigurationContextState {
 
 const defaultConfig: AnalysisConfiguration = {
   mode: 'classification',
-  classificationModelId: 'efficientnetv2b0',
+  classificationModelId: 'efficientnetv2b0_256',
   segmentationModelId: 'brats_3d_unet',
   classificationXaiMethod: 'gradcam',
   classificationTarget: 'Predicted Top Class',
-  classificationLayer: 'top_conv',
+  classificationLayer: 'top_activation',
   segmentationXaiMethod: 'seg_gradcam',
   segmentationLayer: 'bottleneck.conv2',
   segmentationVisualization: 'comparison', // Default is permanently side-by-side
@@ -67,7 +67,7 @@ export function ConfigurationProvider({ children }: { children: ReactNode }) {
       const savedSeg = typeof window !== 'undefined' ? localStorage.getItem('neurolens_selected_segmentation_model') : null;
       return {
         ...defaultConfig,
-        classificationModelId: savedClass || 'efficientnetv2b0',
+        classificationModelId: savedClass || 'efficientnetv2b0_256',
         segmentationModelId: savedSeg || 'brats_3d_unet',
       };
     } catch {

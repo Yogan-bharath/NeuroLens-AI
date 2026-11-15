@@ -179,7 +179,7 @@ export default function NewAnalysisPage() {
     try {
       const res = await analyzeClassification2D(
         file2D,
-        selectedClassificationModelId || 'efficientnetv2b0',
+        selectedClassificationModelId || 'efficientnetv2b0_256',
         useClahe
       );
       if (res.analysis_id) {

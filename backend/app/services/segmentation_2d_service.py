@@ -218,26 +218,64 @@ class Segmentation2DService:
         explain_data: Dict[str, Any] = {}
         if explain:
             try:
-                from app.ml.adapters.seg2d_xai_adapter import seg2d_xai_adapter
+                from app.ml.seg2d_explain import generate_segmentation_explanation
                 target_lyr = explain_layer or "conv2d_20"
-                seg_cam, res_lyr, feat_dim = seg2d_xai_adapter.explain(
-                    model, input_batch, layer_name=target_lyr, out_size=(original_rgb.shape[1], original_rgb.shape[0])
+                exp_res = generate_segmentation_explanation(
+                    model=model,
+                    x_batch=input_batch,
+                    out_size=(original_rgb.shape[0], original_rgb.shape[1]),
+                    pred_mask=binary_mask,
+                    preferred_layer=target_lyr,
                 )
-                _, explain_overlay_bytes = preprocessing_service.overlay_heatmap_on_image(
-                    image_bytes, seg_cam, alpha=0.45
-                )
-                explain_upload = await imagekit_service.upload_file(
-                    explain_overlay_bytes, "segmentation_explain_overlay.png", folder=folder
-                )
+                
+                exp_url = None
+                if exp_res.get("available") and exp_res.get("heatmap_png_bytes"):
+                    try:
+                        exp_upload = await imagekit_service.upload_file(
+                            exp_res["heatmap_png_bytes"], "segmentation_heatmap_rgba.png", folder=folder
+                        )
+                        exp_url = exp_upload.get("url")
+                    except Exception as up_err:
+                        logger.warning(f"Failed to upload heatmap to ImageKit: {up_err}")
+                
+                # Use uploaded URL or base64 data URL
+                effective_heatmap = exp_url or exp_res.get("heatmap_png")
+                
+                explain_payload = {
+                    "available": exp_res.get("available", False),
+                    "heatmap_png": effective_heatmap,
+                    "layer": exp_res.get("layer", target_lyr),
+                    "map_shape": exp_res.get("map_shape", "16 × 16 × 256"),
+                    "stats": exp_res.get("stats", {}),
+                    "method": exp_res.get("method", "SEG-GRADCAM"),
+                    "caption": exp_res.get("caption", "Shows which features drove the total predicted tumor area."),
+                    "disclaimer": exp_res.get("disclaimer", "Research/educational use only. Not clinically validated."),
+                }
+                if not exp_res.get("available") and "reason" in exp_res:
+                    explain_payload["reason"] = exp_res["reason"]
+
                 explain_data = {
-                    "explain_url": explain_upload["url"],
-                    "explain_layer": res_lyr,
-                    "explain_feature_map": f"{feat_dim[0]} × {feat_dim[1]} × {feat_dim[2]}",
-                    "explain_caption": "Shows which features drove the total predicted tumor area.",
-                    "disclaimer": "Research/educational use only. Not clinically validated.",
+                    "explain": explain_payload,
+                    "explain_url": effective_heatmap,
+                    "explain_layer": exp_res.get("layer", target_lyr),
+                    "explain_feature_map": exp_res.get("map_shape", "16 × 16 × 256"),
+                    "explain_caption": exp_res.get("caption", "Shows which features drove the total predicted tumor area."),
+                    "explain_heatmap_png": effective_heatmap,
+                    "explain_stats": exp_res.get("stats", {}),
+                    "explain_available": exp_res.get("available", False),
                 }
             except Exception as exp_err:
                 logger.warning(f"Seg-Grad-CAM generation failed: {exp_err}")
+                explain_data = {
+                    "explain": {
+                        "available": False,
+                        "reason": f"Seg-Grad-CAM generation error: {exp_err}",
+                        "method": "SEG-GRADCAM",
+                        "heatmap_png": None,
+                        "disclaimer": "Research/educational use only. Not clinically validated.",
+                    },
+                    "explain_available": False,
+                }
 
         logger.info(
             "2D segmentation complete: model=%s, tumor_detected=%s, area=%.2f%%, pixels=%d",
