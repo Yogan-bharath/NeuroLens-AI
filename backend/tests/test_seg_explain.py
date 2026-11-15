@@ -15,6 +15,7 @@ from app.ml.seg2d_explain import (
     encode_png_rgba,
     heat_stats,
     generate_segmentation_explanation,
+    resolve_layer,
 )
 
 
@@ -24,6 +25,16 @@ def create_standin_seg_model():
     x = tf.keras.layers.Conv2D(8, (3, 3), padding="same", name="conv2d_20")(inputs)
     outputs = tf.keras.layers.Conv2D(1, (1, 1), activation="sigmoid", name="head")(x)
     return tf.keras.Model(inputs=inputs, outputs=outputs)
+
+
+def test_default_seg_gradcam_layer_prefers_fine_decoder():
+    inputs = tf.keras.Input(shape=(32, 32, 3), name="input_image")
+    x = tf.keras.layers.Conv2D(8, (3, 3), padding="same", name="conv2d_20")(inputs)
+    x = tf.keras.layers.UpSampling2D(size=(2, 2), name="up_sampling2d_2")(x)
+    outputs = tf.keras.layers.Conv2D(1, (1, 1), activation="sigmoid", name="head")(x)
+    model = tf.keras.Model(inputs=inputs, outputs=outputs)
+
+    assert resolve_layer(model) == ("up_sampling2d_2", "default_fine_layer")
 
 
 def test_heatmap_rgba_properties():
@@ -84,6 +95,19 @@ def test_heat_stats_degenerate_and_mask_fraction():
     assert s_mask["mask_area_fraction"] > 0
 
 
+def test_heat_stats_resizes_model_mask_to_native_cam_dimensions():
+    """A 256x256 model mask can be compared safely against a native-size CAM."""
+    cam = np.zeros((354, 356), dtype=np.float32)
+    cam[:177, :] = 1.0
+    mask = np.zeros((256, 256), dtype=np.uint8)
+    mask[:128, :] = 1
+
+    stats = heat_stats(cam, pred_mask=mask)
+
+    assert stats["mask_area_fraction"] == pytest.approx(0.5, abs=0.01)
+    assert stats["heat_mass_in_mask"] == pytest.approx(1.0)
+
+
 def test_seg_gradcam_on_standin_model():
     """Tests seg_gradcam execution on small stand-in model."""
     model = create_standin_seg_model()
@@ -134,11 +158,12 @@ def test_generate_segmentation_explanation_contract():
 async def test_segmentation_service_explain_integration(monkeypatch):
     """Tests segmentation service with stubbed model produces valid explain fields."""
     from app.services.segmentation_2d_service import segmentation_2d_service
+    from app.services.imagekit_service import imagekit_service
 
     standin_model = create_standin_seg_model()
 
-    # Create dummy 32x32 image bytes (PNG)
-    dummy_img = (np.random.uniform(0, 255, size=(32, 32, 3))).astype(np.uint8)
+    # Keep a native-size image separate from the stand-in model's 32x32 input.
+    dummy_img = (np.random.uniform(0, 255, size=(354, 356, 3))).astype(np.uint8)
     _, buf = cv2.imencode(".png", dummy_img)
     img_bytes = buf.tobytes()
 
@@ -147,6 +172,11 @@ async def test_segmentation_service_explain_integration(monkeypatch):
         "_select_model",
         lambda: (standin_model, "deeplabv3plus_stub", lambda b: np.zeros((1, 32, 32, 3), dtype=np.float32)),
     )
+
+    async def no_upload_url(*args, **kwargs):
+        return {"url": None}
+
+    monkeypatch.setattr(imagekit_service, "upload_file", no_upload_url)
 
     res = await segmentation_2d_service.segment_2d(
         image_bytes=img_bytes,
@@ -173,7 +203,7 @@ async def test_segmentation_service_explain_integration(monkeypatch):
         raw_bytes = base64.b64decode(b64_part)
         decoded = cv2.imdecode(np.frombuffer(raw_bytes, np.uint8), cv2.IMREAD_UNCHANGED)
         alpha = decoded[:, :, 3]
-        assert alpha.shape == (32, 32)
+        assert alpha.shape == (354, 356)
         # Cold pixels have alpha 0, hot pixels have alpha > 0
         assert alpha.min() == 0
     else:

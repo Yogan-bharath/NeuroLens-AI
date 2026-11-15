@@ -28,7 +28,7 @@ METADATA = {
     "xai_method": "Seg-Grad-CAM",
     "caption": "Shows which features drove the total predicted tumor area.",
     "disclaimer": "Research/educational use only. Not clinically validated.",
-    "default_layer": "conv2d_20",
+    "default_layer": "up_sampling2d_2",
     "candidate_layers": [
         {
             "id": "conv2d_20",
@@ -81,7 +81,11 @@ class Seg2DXaiAdapter:
         if not resolved:
             layers_info = ref_resolve_layers(model, img_size=256)
             candidates = layers_info.get("layers", [])
-            resolved = "conv2d_20" if "conv2d_20" in candidates else (candidates[0] if candidates else "conv2d_20")
+            resolved = (
+                "up_sampling2d_2"
+                if "up_sampling2d_2" in candidates
+                else (candidates[0] if candidates else "up_sampling2d_2")
+            )
 
         heatmap = ref_seg_gradcam(model, x_batch, resolved, out_size=out_size)
         f_shape = ref_feature_map_shape(model, resolved)

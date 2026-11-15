@@ -50,19 +50,35 @@ def encode_png_rgba(rgba: np.ndarray) -> bytes:
 
 
 def heat_stats(cam: np.ndarray, pred_mask: np.ndarray = None) -> dict:
-    """degenerate=True -> all zeros/constant: report 'no explanation', never fall back to the mask."""
+    """Computes attribution statistics, aligning the predicted mask to the CAM grid."""
     cam = np.asarray(cam, np.float32)
     s = {
-        "min": float(cam.min()),
-        "max": float(cam.max()),
-        "mean": float(cam.mean()),
-        "hot_fraction": float((cam > 0.5).mean()),
-        "degenerate": bool(cam.max() < 1e-6 or (cam.max() - cam.min()) < 1e-3),
+        "min": float(cam.min()) if cam.size > 0 else 0.0,
+        "max": float(cam.max()) if cam.size > 0 else 0.0,
+        "mean": float(cam.mean()) if cam.size > 0 else 0.0,
+        "hot_fraction": float((cam > 0.5).mean()) if cam.size > 0 else 0.0,
+        "degenerate": bool(
+            cam.size == 0
+            or cam.max() < 1e-6
+            or (cam.max() - cam.min()) < 1e-3
+        ),
     }
     if pred_mask is not None:
-        m = np.asarray(pred_mask) > 0
+        m = np.asarray(pred_mask).squeeze()
+        if m.ndim != 2:
+            raise ValueError(f"Expected a 2D predicted mask, got shape {m.shape}")
+        m = m > 0
+        if m.shape != cam.shape:
+            if cam.size == 0:
+                raise ValueError("Cannot align a predicted mask to an empty CAM")
+            m = cv2.resize(
+                m.astype(np.uint8),
+                (cam.shape[1], cam.shape[0]),
+                interpolation=cv2.INTER_NEAREST,
+            ) > 0
         s["mask_area_fraction"] = float(m.mean())
-        s["heat_mass_in_mask"] = float(cam[m].sum() / cam.sum()) if cam.sum() > 0 else 0.0
+        total_cam = float(cam.sum())
+        s["heat_mass_in_mask"] = float(cam[m].sum() / total_cam) if total_cam > 0 else 0.0
     return s
 
 
@@ -75,15 +91,17 @@ def composite_preview(mri_rgb_uint8: np.ndarray, rgba: np.ndarray, opacity: floa
 
 def resolve_layer(model, preferred_layer: Optional[str] = None) -> Tuple[str, str]:
     """
-    Resolves target layer name. Default is conv2d_20 (16x16x256).
-    If name is absent, chooses by shape: last Conv2D with output 16x16x256.
+    Resolves target layer name. Prefer the high-resolution decoder layer.
     """
     layer_names = [l.name for l in model.layers]
     if preferred_layer and preferred_layer in layer_names:
         return preferred_layer, "explicit"
 
+    if "up_sampling2d_2" in layer_names:
+        return "up_sampling2d_2", "default_fine_layer"
+
     if "conv2d_20" in layer_names:
-        return "conv2d_20", "default_name"
+        return "conv2d_20", "deep_layer_fallback"
 
     # Search for layer with shape (16, 16, 256)
     for l in reversed(model.layers):
@@ -103,7 +121,7 @@ def generate_segmentation_explanation(
     x_batch: np.ndarray,
     out_size: Tuple[int, int],
     pred_mask: Optional[np.ndarray] = None,
-    preferred_layer: Optional[str] = "conv2d_20",
+    preferred_layer: Optional[str] = "up_sampling2d_2",
 ) -> Dict[str, Any]:
     """
     Generates Seg-Grad-CAM explanation.
@@ -124,7 +142,7 @@ def generate_segmentation_explanation(
             "method": "SEG-GRADCAM",
             "stats": {"degenerate": True},
             "heatmap_png": None,
-            "caption": "Shows which features drove the total predicted tumor area. The score is the predicted tumor area, so hot regions usually overlap the mask; the map is coarse (16 x 16) and is not a tumor boundary.",
+            "caption": "Shows features that influenced total predicted tumor probability. Grad-CAM may extend outside the predicted mask and is not a tumor boundary.",
             "disclaimer": "Research/educational use only. Not clinically validated.",
         }
 
@@ -135,11 +153,10 @@ def generate_segmentation_explanation(
     b64_str = base64.b64encode(png_bytes).decode("ascii")
     heatmap_data_url = f"data:image/png;base64,{b64_str}"
 
-    fine_note = " (Fine boundary delineation layer)" if target_layer == "up_sampling2d_2" else ""
+    fine_note = " using the higher-resolution decoder layer" if target_layer == "up_sampling2d_2" else ""
     caption = (
-        f"Shows which features drove the total predicted tumor area{fine_note}. "
-        "The score is the predicted tumor area, so hot regions usually overlap the mask; "
-        "the map is coarse (16 x 16) and is not a tumor boundary."
+        f"Shows features that influenced total predicted tumor probability{fine_note}. "
+        "Grad-CAM may extend outside the predicted mask and is not a tumor boundary."
     )
 
     return {

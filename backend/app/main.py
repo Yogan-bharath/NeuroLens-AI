@@ -6,7 +6,7 @@ from fastapi.exceptions import RequestValidationError
 
 from app.core.config import settings
 from app.core.logging import setup_logging, logger
-from app.core.exceptions import NeuroLensException
+from app.core.exceptions import NeuroScanException
 from app.db.mongodb import connect_to_mongo, close_mongo_connection
 from app.db.indexes import create_indexes
 from app.ml.model_loader import model_loader
@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
     model_loader.load_models()
     yield
     # Shutdown
-    logger.info("Shutting down NeuroLens AI Backend...")
+    logger.info("Shutting down NeuroScan Backend...")
     await close_mongo_connection()
 
 
@@ -52,8 +52,8 @@ app.add_middleware(
 )
 
 # ─── Global Exception Handlers ────────────────────────────────────────────
-@app.exception_handler(NeuroLensException)
-async def neurolens_exception_handler(request: Request, exc: NeuroLensException):
+@app.exception_handler(NeuroScanException)
+async def neuroscan_exception_handler(request: Request, exc: NeuroScanException):
     return JSONResponse(
         status_code=exc.status_code,
         content={

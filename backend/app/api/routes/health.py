@@ -15,7 +15,7 @@ async def get_health():
         status="ok",
         version="v2.4.0",
         environment=settings.ENVIRONMENT,
-        service="NeuroLens AI Backend"
+        service="NeuroScan Backend"
     )
 
 

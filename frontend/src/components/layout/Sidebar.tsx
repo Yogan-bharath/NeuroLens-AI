@@ -46,7 +46,7 @@ function SidebarContent({ collapsed, onClose }: { collapsed: boolean; onClose?: 
               exit={{ opacity: 0, width: 0 }}
               className="overflow-hidden whitespace-nowrap"
             >
-              <h1 className="text-base font-semibold text-neuro-text-primary">NeuroLens AI</h1>
+              <h1 className="text-base font-semibold text-neuro-text-primary">NeuroScan</h1>
             </motion.div>
           )}
         </AnimatePresence>

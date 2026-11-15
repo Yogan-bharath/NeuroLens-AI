@@ -130,7 +130,7 @@ export default function DocumentationPage() {
     >
       <PageHeader
         title="Documentation & Research Methodology"
-        subtitle="Detailed architectural background, interpretation guidelines, and safety constraints for NeuroLens AI."
+        subtitle="Detailed architectural background, interpretation guidelines, and safety constraints for NeuroScan."
       />
 
       <div className="space-y-4">

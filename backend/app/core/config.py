@@ -12,7 +12,7 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
-    PROJECT_NAME: str = "NeuroLens AI API"
+    PROJECT_NAME: str = "NeuroScan API"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     API_PREFIX: str = "/api"

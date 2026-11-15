@@ -60,6 +60,6 @@ async def download_analysis_report_pdf(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f"attachment; filename=NeuroLens_Report_{analysis_id}.pdf"
+            "Content-Disposition": f"attachment; filename=NeuroScan_Report_{analysis_id}.pdf"
         }
     )

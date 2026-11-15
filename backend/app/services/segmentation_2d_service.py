@@ -218,13 +218,21 @@ class Segmentation2DService:
         explain_data: Dict[str, Any] = {}
         if explain:
             try:
+                import cv2
                 from app.ml.seg2d_explain import generate_segmentation_explanation
-                target_lyr = explain_layer or "conv2d_20"
+                target_lyr = explain_layer or "up_sampling2d_2"
+                h, w = original_rgb.shape[:2]
+                # Two separate conversions:
+                # 1) DeepLab model operates on 256x256 input_batch
+                # 2) Rescale mask & CAM heatmap to the native MRI image size (h, w)
+                mask_native = cv2.resize(
+                    binary_mask.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST
+                )
                 exp_res = generate_segmentation_explanation(
                     model=model,
                     x_batch=input_batch,
-                    out_size=(original_rgb.shape[0], original_rgb.shape[1]),
-                    pred_mask=binary_mask,
+                    out_size=(h, w),
+                    pred_mask=mask_native,
                     preferred_layer=target_lyr,
                 )
                 
@@ -258,7 +266,7 @@ class Segmentation2DService:
                     "explain": explain_payload,
                     "explain_url": effective_heatmap,
                     "explain_layer": exp_res.get("layer", target_lyr),
-                    "explain_feature_map": exp_res.get("map_shape", "16 × 16 × 256"),
+                    "explain_feature_map": exp_res.get("map_shape", "256 × 256 × 256"),
                     "explain_caption": exp_res.get("caption", "Shows which features drove the total predicted tumor area."),
                     "explain_heatmap_png": effective_heatmap,
                     "explain_stats": exp_res.get("stats", {}),

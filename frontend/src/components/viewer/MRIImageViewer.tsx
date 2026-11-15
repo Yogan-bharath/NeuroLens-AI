@@ -100,14 +100,14 @@ export default function MRIImageViewer({
           ctx.globalAlpha = overlayOpacity;
           ctx.drawImage(img2, 0, 0, canvas.width, canvas.height);
           const link = document.createElement('a');
-          link.download = `neurolens_mri_composite_${Date.now()}.png`;
+          link.download = `neuroscan_mri_composite_${Date.now()}.png`;
           link.href = canvas.toDataURL('image/png');
           link.click();
         };
         img2.src = overlayImage;
       } else {
         const link = document.createElement('a');
-        link.download = `neurolens_mri_${Date.now()}.png`;
+        link.download = `neuroscan_mri_${Date.now()}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
       }

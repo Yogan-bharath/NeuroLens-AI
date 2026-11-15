@@ -30,7 +30,7 @@ export default function AIChatPanel({
     {
       id: 'welcome',
       role: 'assistant',
-      content: `Hello. I am the NeuroLens Copilot.
+      content: `Hello. I am the NeuroScan Copilot.
 ${
   predictedClass
     ? `I have context on the current analysis (${predictedClass}). `

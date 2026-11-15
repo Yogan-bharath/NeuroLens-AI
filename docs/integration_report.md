@@ -1,8 +1,8 @@
-# NeuroLens AI — Integration Report (feat/new-models-xai)
+# NeuroScan — Integration Report (feat/new-models-xai)
 
 ## 1. Executive Summary
 
-This integration introduces three key model and explainability extensions to NeuroLens AI on branch `feat/new-models-xai`, implemented in strict accordance with the additive-only architecture rules:
+This integration introduces three key model and explainability extensions to NeuroScan on branch `feat/new-models-xai`, implemented in strict accordance with the additive-only architecture rules:
 
 - **Task A (EfficientNetV2B0 256x256 Classifier + Grad-CAM)**: Integrated native CLAHE 256×256 classifier artifact (`EfficientNetV2B0_clahe_256.keras`), supporting RAW 0-255 inputs (internal rescaling/normalization preserved), class index alignment (`0: glioma, 1: meningioma, 2: notumor, 3: pituitary`), and `top_activation` (8×8×1280) Grad-CAM and Grad-CAM++.
 - **Task B (DeepLabV3+ Seg-Grad-CAM 2D XAI)**: Integrated Seg-Grad-CAM targeting summed tumor probability over verified layers `conv2d_20` (ASPP fused output activation: 16×16×256) and `up_sampling2d_2` (decoder feature map: 64×64×256). Added an "Explain" sub-toggle in the 2D tumor segmentation card.

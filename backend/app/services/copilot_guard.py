@@ -1,7 +1,7 @@
 """Deterministic first-line scope and prompt-injection guard for the Copilot."""
 import re
 
-REFUSAL = ("I'm NeuroLens AI Research Copilot. I can only assist with questions related to your current brain MRI analysis, classification results, segmentation outputs and explainable AI visualizations. Please ask a question related to your NeuroLens analysis.")
+REFUSAL = ("I'm NeuroScan Research Copilot. I can only assist with questions related to your current brain MRI analysis, classification results, segmentation outputs and explainable AI visualizations. Please ask a question related to your NeuroScan analysis.")
 
 _ALLOWED = re.compile(
     r"\b(mri|brain|neuro ?lens|analysis|scan|classification|class|predict|confidence|probabilit|"
@@ -31,5 +31,5 @@ def validate_topic(message: str, has_history: bool = False) -> str | None:
     if _ALLOWED.search(text) or (has_history and _FOLLOW_UP.match(text)):
         return None
     if len(text.split()) <= 5:
-        return "Please clarify how your question relates to the current NeuroLens MRI analysis or its model outputs."
+        return "Please clarify how your question relates to the current NeuroScan MRI analysis or its model outputs."
     return REFUSAL

@@ -285,7 +285,7 @@ export default function Segmentation3DResultsPage() {
           </a>
           <ExportReportButton analysis={data} />
           <button
-            onClick={() => navigate('/explainability')}
+            onClick={() => navigate(`/explainability?analysisId=${analysisId}`)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-neuro-surface-200 hover:bg-neuro-surface-300 border border-neuro-border text-xs font-mono text-cyan-400 transition-colors"
           >
             <Sparkles className="w-3.5 h-3.5" />

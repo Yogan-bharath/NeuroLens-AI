@@ -17,4 +17,4 @@ def setup_logging():
     logging.getLogger("pymongo").setLevel(logging.WARNING)
     logging.getLogger("imagekitio").setLevel(logging.WARNING)
 
-logger = logging.getLogger("neurolens")
+logger = logging.getLogger("neuroscan")

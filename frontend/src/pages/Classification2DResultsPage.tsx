@@ -27,6 +27,8 @@ import ExportReportButton from '@/components/common/ExportReportButton';
 import { extractNormalizedScores } from '@/lib/scoreUtils';
 import { SegExplainViewer } from '@/components/analysis/SegExplainViewer';
 
+const SEGMENTATION_EXPLAIN_LAYER = 'up_sampling2d_2';
+
 export default function Classification2DResultsPage() {
   const { analysisId } = useParams<{ analysisId: string }>();
   const navigate = useNavigate();
@@ -40,8 +42,7 @@ export default function Classification2DResultsPage() {
   const [segViewMode, setSegViewMode] = useState<'overlay' | 'mask' | 'explain'>('overlay');
   const [isGeneratingSeg, setIsGeneratingSeg] = useState<boolean>(false);
   const [segError, setSegError] = useState<string | null>(null);
-  const [selectedSegLayer, setSelectedSegLayer] = useState<string>('conv2d_20');
-  const [isLoadingSegLayer, setIsLoadingSegLayer] = useState<boolean>(false);
+  const [isRefreshingSegExplain, setIsRefreshingSegExplain] = useState<boolean>(false);
 
   useEffect(() => {
     if (!analysisId) {
@@ -141,13 +142,18 @@ export default function Classification2DResultsPage() {
   const segmentationMaskUrl = analysisData.segmentation_mask_url;
   const segmentationModelUsed = analysisData.segmentation_model_used;
   const segmentationTumorAreaPct = analysisData.segmentation_tumor_area_pct;
+  const currentExplainLayer = analysisData.explain_segmentation_layer || analysisData.explain?.layer;
+  const currentExplainUrl =
+    analysisData.explain_segmentation_url ||
+    analysisData.explain_segmentation_heatmap_png ||
+    analysisData.explain?.heatmap_png;
 
   const handleGenerateSegmentation = async () => {
     if (!analysisId || isGeneratingSeg) return;
     setIsGeneratingSeg(true);
     setSegError(null);
     try {
-      const res = await generate2DSegmentation(analysisId, selectedSegLayer);
+      const res = await generate2DSegmentation(analysisId, SEGMENTATION_EXPLAIN_LAYER);
       setAnalysisData((prev: any) =>
         prev
           ? {
@@ -163,12 +169,18 @@ export default function Classification2DResultsPage() {
     }
   };
 
-  const handleExplainLayerChange = async (newLayer: string) => {
-    if (!analysisId || isLoadingSegLayer) return;
-    setSelectedSegLayer(newLayer);
-    setIsLoadingSegLayer(true);
+  const handleShowSegExplanation = async () => {
+    setSegViewMode('explain');
+    if (
+      !analysisId ||
+      isRefreshingSegExplain ||
+      currentExplainLayer === SEGMENTATION_EXPLAIN_LAYER
+    ) return;
+
+    setSegError(null);
+    setIsRefreshingSegExplain(true);
     try {
-      const res = await generate2DSegmentation(analysisId, newLayer);
+      const res = await generate2DSegmentation(analysisId, SEGMENTATION_EXPLAIN_LAYER);
       setAnalysisData((prev: any) =>
         prev
           ? {
@@ -178,9 +190,10 @@ export default function Classification2DResultsPage() {
           : prev
       );
     } catch (err) {
-      console.error('Failed to update Seg-Grad-CAM layer', err);
+      console.error('Failed to generate the fine Seg-Grad-CAM explanation', err);
+      setSegError(err instanceof Error ? err.message : 'Failed to generate the Seg-Grad-CAM explanation.');
     } finally {
-      setIsLoadingSegLayer(false);
+      setIsRefreshingSegExplain(false);
     }
   };
 
@@ -432,7 +445,7 @@ export default function Classification2DResultsPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSegViewMode('explain')}
+                    onClick={() => { void handleShowSegExplanation(); }}
                     className={`px-2.5 py-0.5 rounded ${segViewMode === 'explain' ? 'bg-neuro-accent text-neuro-bg font-semibold' : 'text-neuro-text-muted hover:text-neuro-text-primary'}`}
                   >
                     Explain
@@ -441,41 +454,40 @@ export default function Classification2DResultsPage() {
               )}
             </div>
 
+            {segError && (segmentationOverlayUrl || segmentationMaskUrl) && (
+              <p role="alert" className="flex items-start gap-2 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{segError}</span>
+              </p>
+            )}
+
             {segmentationOverlayUrl || segmentationMaskUrl ? (
               segViewMode === 'explain' ? (
                 <SegExplainViewer
                   originalImage={originalImage}
-                  heatmapUrl={
-                    analysisData.explain_segmentation_url ||
-                    analysisData.explain_segmentation_heatmap_png ||
-                    analysisData.explain?.heatmap_png
-                  }
+                  heatmapUrl={currentExplainLayer === SEGMENTATION_EXPLAIN_LAYER ? currentExplainUrl : undefined}
                   maskUrl={segmentationMaskUrl}
-                  layerName={
-                    analysisData.explain_segmentation_layer ||
-                    analysisData.explain?.layer ||
-                    selectedSegLayer
-                  }
                   featureMapShape={
-                    analysisData.explain_segmentation_feature_map ||
-                    analysisData.explain?.map_shape ||
-                    (selectedSegLayer === 'up_sampling2d_2' ? '256 × 256 × 256' : '16 × 16 × 256')
+                    currentExplainLayer === SEGMENTATION_EXPLAIN_LAYER
+                      ? analysisData.explain_segmentation_feature_map ||
+                        analysisData.explain?.map_shape ||
+                        '256 × 256 × 256'
+                      : '256 × 256 × 256'
                   }
                   isAvailable={
+                    currentExplainLayer === SEGMENTATION_EXPLAIN_LAYER &&
                     analysisData.explain_segmentation_available !== false &&
                     analysisData.explain?.available !== false
                   }
                   unavailableReason={
-                    analysisData.explain?.reason || analysisData.explain_segmentation_reason
+                    segError || analysisData.explain?.reason || analysisData.explain_segmentation_reason
                   }
                   blendMode={blendMode}
                   opacity={camOpacity}
                   stats={
                     analysisData.explain_segmentation_stats || analysisData.explain?.stats
                   }
-                  onLayerChange={handleExplainLayerChange}
-                  selectedLayer={selectedSegLayer}
-                  isLoadingLayer={isLoadingSegLayer}
+                  isLoading={isRefreshingSegExplain}
                 />
               ) : (
                 <>
@@ -516,12 +528,24 @@ export default function Classification2DResultsPage() {
                   <p className="text-xs font-semibold text-neuro-text-primary">
                     Tumor Segmentation Mask Not Generated Yet
                   </p>
-                  <p className="text-[11px] text-neuro-text-muted">
-                    Run the 2D segmentation model (DeepLabV3+ / BRISC U-Net) on this MRI slice to highlight the predicted tumor region.
-                  </p>
+                  {isGeneratingSeg ? (
+                    <div role="status" aria-live="polite" className="flex flex-col items-center gap-2 py-3">
+                      <Loader2 className="h-8 w-8 animate-spin text-neuro-accent" />
+                      <p className="text-xs font-semibold text-neuro-text-primary">
+                        Generating tumor mask and explanation…
+                      </p>
+                      <p className="text-[11px] text-neuro-text-muted">
+                        The segmentation model may take a little while to respond. Keep this page open.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-neuro-text-muted">
+                      Run the 2D segmentation model (DeepLabV3+ / BRISC U-Net) on this MRI slice to highlight the predicted tumor region.
+                    </p>
+                  )}
                 </div>
                 {segError && (
-                  <p className="text-xs text-red-400 font-mono">{segError}</p>
+                  <p role="alert" className="text-xs text-red-400 font-mono">{segError}</p>
                 )}
                 <button
                   type="button"

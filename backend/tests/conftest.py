@@ -43,7 +43,7 @@ def auth_headers(test_user_id: str) -> dict:
     token = create_access_token(
         subject=test_user_id,
         extra_claims={
-            "email": "tester@neurolens.ai",
+            "email": "tester@example.com",
             "name": "Dr. Test Researcher",
             "role": "researcher"
         }
@@ -56,7 +56,7 @@ def admin_headers() -> dict:
     token = create_access_token(
         subject="admin_user_001",
         extra_claims={
-            "email": "admin@neurolens.ai",
+            "email": "admin@example.com",
             "name": "System Administrator",
             "role": "admin"
         }

@@ -40,6 +40,7 @@ from app.ml.brats_3d_unet import (
     sliding_window_predict,
 )
 from app.ml.model_loader import model_loader
+from app.ml.attention_vit_2d_xai import make_2d_gradcam
 
 # Segmentation class color mapping (Hex and RGBA)
 CLASS_COLORS = {
@@ -861,10 +862,18 @@ class Brats3DSegmentationService:
                     import cv2
                     center_slice_4ch = stacked_volume[:, :, z_slice_idx, :]
                     sl_128 = cv2.resize(center_slice_4ch, (128, 128), interpolation=cv2.INTER_LINEAR)
+                    center_brain_mask = cv2.resize(
+                        (raw_dict["flair"][:, :, z_slice_idx] > 0).astype(np.uint8),
+                        (128, 128),
+                        interpolation=cv2.INTER_NEAREST,
+                    ) > 0
                     for ch in range(4):
-                        nz = sl_128[..., ch] > 0
-                        if np.sum(nz) > 0:
-                            sl_128[..., ch][nz] = (sl_128[..., ch][nz] - np.mean(sl_128[..., ch][nz])) / max(np.std(sl_128[..., ch][nz]), 1e-6)
+                        vals = sl_128[center_brain_mask, ch]
+                        if vals.size:
+                            ch_std = np.std(vals)
+                            if ch_std > 1e-5:
+                                sl_128[center_brain_mask, ch] = (vals - np.mean(vals)) / ch_std
+                        sl_128[~center_brain_mask, ch] = 0.0
 
                     base_pred = model(sl_128[None], training=False).numpy()[0]
                     base_wt = int(np.sum(np.argmax(base_pred, axis=-1) > 0))
@@ -883,24 +892,54 @@ class Brats3DSegmentationService:
                             "impact_level": "High" if abs(change_pct) > 25 else "Moderate" if abs(change_pct) > 10 else "Low",
                         })
 
-                    # Saliency / Attention map overlay
+                    # Notebook-style class-specific Grad-CAM at the spatial bottleneck.
                     flair_slice = sl_128[..., 0]
-                    fig, ax = plt.subplots(figsize=(3, 3), dpi=100)
-                    ax.imshow(flair_slice.T, cmap="gray", origin="lower")
-                    ax.imshow(np.max(base_pred[..., 1:], axis=-1).T, cmap="jet", alpha=0.5, origin="lower")
-                    ax.axis("off")
-                    buf = io.BytesIO()
-                    plt.savefig(buf, format="png", bbox_inches="tight", pad_inches=0)
-                    plt.close(fig)
-                    att_map = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode('utf-8')}"
+                    gradcam_previews = {}
+                    gradcam_errors = {}
+                    targets = [("Whole Tumor", None)] + [
+                        (CLASS_NAMES[class_index], class_index) for class_index in (1, 2, 3)
+                    ]
+                    for class_name, class_index in targets:
+                        try:
+                            cam = make_2d_gradcam(
+                                model,
+                                sl_128,
+                                class_index=class_index,
+                                layer_name="bottleneck_relu2",
+                            )
+                            fig, ax = plt.subplots(figsize=(3, 3), dpi=100)
+                            ax.imshow(flair_slice.T, cmap="gray", origin="lower")
+                            ax.imshow(
+                                np.ma.masked_where(cam.T < 0.25, cam.T),
+                                cmap="jet",
+                                alpha=0.55,
+                                vmin=0,
+                                vmax=1,
+                                origin="lower",
+                            )
+                            ax.axis("off")
+                            buf = io.BytesIO()
+                            plt.savefig(buf, format="png", bbox_inches="tight", pad_inches=0)
+                            plt.close(fig)
+                            gradcam_previews[class_name] = (
+                                f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode('utf-8')}"
+                            )
+                        except Exception as exc:
+                            plt.close("all")
+                            gradcam_errors[class_name] = str(exc)
+                            logger.warning(
+                                "Could not compute 2D Attention-ViT Grad-CAM for %s: %s",
+                                class_name,
+                                exc,
+                            )
 
                     explainability_data = {
-                        "gradcam_layer": "MultiHeadAttention / AttentionGate",
-                        "gradcam_maps": {"Whole Tumor": att_map},
+                        "gradcam_layer": "bottleneck_relu2",
+                        "gradcam_maps": gradcam_previews,
+                        "gradcam_errors": gradcam_errors,
                         "bottleneck_features": {
-                            "shape": [1, 32, 32, 256],
+                            "shape": [1, 16, 16, 256],
                             "channels_count": 256,
-                            "depth_slice": 16,
                         },
                         "modality_ablation": ablation_summary,
                         "uncertainty": {

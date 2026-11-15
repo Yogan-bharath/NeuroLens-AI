@@ -184,7 +184,7 @@ export default function AuthModal() {
                     required
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    placeholder="researcher@neurolens.ai"
+                    placeholder="researcher@example.com"
                     className="w-full pl-9 pr-3 py-2 rounded-lg bg-neuro-surface-200 border border-neuro-border text-xs text-neuro-text-primary placeholder:text-neuro-text-muted focus:outline-none focus:border-neuro-accent"
                   />
                 </div>
@@ -237,7 +237,7 @@ export default function AuthModal() {
               <div className="pt-2 text-center text-xs text-neuro-text-muted">
                 {mode === 'login' ? (
                   <span>
-                    New to NeuroLens AI?{' '}
+                    New to NeuroScan?{' '}
                     <button
                       type="button"
                       onClick={() => {

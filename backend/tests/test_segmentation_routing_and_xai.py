@@ -33,7 +33,7 @@ def create_dummy_nifti():
 def override_auth():
     test_user = UserDB(
         id="test_user_id_xai",
-        email="doctor@neurolens.ai",
+        email="doctor@example.com",
         name="Dr. Neurologist",
         role="clinician",
         is_verified=True,

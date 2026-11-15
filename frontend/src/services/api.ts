@@ -138,10 +138,11 @@ export interface SegmentationAnalysisResponse {
   explainability: {
     gradcam_layer?: string;
     gradcam_maps?: Record<string, string>;
+    gradcam_errors?: Record<string, string>;
     bottleneck_features?: {
       shape: number[];
       channels_count: number;
-      depth_slice: number;
+      depth_slice?: number;
     };
     modality_ablation?: Array<{
       removed_modality: string;
@@ -328,7 +329,7 @@ export async function segmentBratsVolume(
   files: { flair: File; t1: File; t1ce: File; t2: File; segmentation?: File }
 ): Promise<BratsSegmentationResponse> {
   if (!API_BASE_URL) {
-    throw new Error('Volumetric segmentation requires the configured NeuroLens backend.');
+    throw new Error('Volumetric segmentation requires the configured NeuroScan backend.');
   }
 
   const formData = new FormData();
@@ -637,7 +638,7 @@ export async function fetchCurrentUser(): Promise<User | null> {
     return {
       id: 'usr_demo',
       name: 'Dr. Sarah Lin, MD',
-      email: 'clinician@neurolens.ai',
+      email: 'clinician@example.com',
       role: 'researcher',
       is_active: true,
       created_at: new Date().toISOString(),

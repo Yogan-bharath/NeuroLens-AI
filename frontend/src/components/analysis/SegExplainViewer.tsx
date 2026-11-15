@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AlertCircle, Sliders, Layers } from 'lucide-react';
+import { AlertCircle, Loader2, Sliders, Layers } from 'lucide-react';
 
 export interface SegExplainStats {
   min?: number;
@@ -15,32 +15,26 @@ export interface SegExplainViewerProps {
   originalImage?: string;
   heatmapUrl?: string;
   maskUrl?: string;
-  layerName?: string;
   featureMapShape?: string;
   isAvailable?: boolean;
   unavailableReason?: string;
   blendMode?: 'screen' | 'overlay' | 'normal';
   opacity?: number;
   stats?: SegExplainStats;
-  onLayerChange?: (layer: string) => void;
-  selectedLayer?: string;
-  isLoadingLayer?: boolean;
+  isLoading?: boolean;
 }
 
 export const SegExplainViewer: React.FC<SegExplainViewerProps> = ({
   originalImage,
   heatmapUrl,
   maskUrl,
-  layerName = 'conv2d_20',
-  featureMapShape = '16 × 16 × 256',
+  featureMapShape = '256 × 256 × 256',
   isAvailable = true,
   unavailableReason,
   blendMode = 'screen',
   opacity = 0.65,
   stats,
-  onLayerChange,
-  selectedLayer = 'conv2d_20',
-  isLoadingLayer = false,
+  isLoading = false,
 }) => {
   const [showOutline, setShowOutline] = useState<boolean>(true);
   const [outlineDataUrl, setOutlineDataUrl] = useState<string | null>(null);
@@ -128,41 +122,16 @@ export const SegExplainViewer: React.FC<SegExplainViewerProps> = ({
     return 'mix-blend-normal';
   };
 
-  const isFineLayer = (selectedLayer || layerName) === 'up_sampling2d_2';
-
   return (
     <div className="space-y-3">
-      {/* Controls Header: Layer Selector & Thin Outline Toggle */}
+      {/* Layer Label & Thin Outline Toggle */}
       <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
-        {onLayerChange && (
-          <div className="flex items-center gap-1.5 bg-neuro-surface-300 p-0.5 rounded border border-neuro-border">
-            <span className="text-[10px] text-neuro-text-muted px-1.5 font-semibold">LAYER:</span>
-            <button
-              type="button"
-              disabled={isLoadingLayer}
-              onClick={() => onLayerChange('conv2d_20')}
-              className={`px-2 py-0.5 rounded text-[11px] transition-colors ${
-                (selectedLayer || layerName) === 'conv2d_20'
-                  ? 'bg-neuro-accent text-neuro-bg font-bold shadow-xs'
-                  : 'text-neuro-text-muted hover:text-white'
-              }`}
-            >
-              Deep (conv2d_20, 16×16)
-            </button>
-            <button
-              type="button"
-              disabled={isLoadingLayer}
-              onClick={() => onLayerChange('up_sampling2d_2')}
-              className={`px-2 py-0.5 rounded text-[11px] transition-colors ${
-                (selectedLayer || layerName) === 'up_sampling2d_2'
-                  ? 'bg-neuro-accent text-neuro-bg font-bold shadow-xs'
-                  : 'text-neuro-text-muted hover:text-white'
-              }`}
-            >
-              Fine (up_sampling2d_2, 256×256)
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 bg-neuro-surface-300 p-0.5 rounded border border-neuro-border">
+          <span className="text-[10px] text-neuro-text-muted px-1.5 font-semibold">LAYER:</span>
+          <span className="px-2 py-0.5 rounded text-[11px] bg-neuro-accent text-neuro-bg font-bold shadow-xs">
+            Fine (up_sampling2d_2, 256×256)
+          </span>
+        </div>
 
         <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-neuro-text-secondary hover:text-white select-none">
           <input
@@ -223,7 +192,7 @@ export const SegExplainViewer: React.FC<SegExplainViewerProps> = ({
             <div className="absolute top-2 left-2 pointer-events-none font-mono text-[10px] text-neuro-accent bg-black/75 px-2 py-1 rounded border border-white/10 backdrop-blur-xs">
               <div className="font-semibold text-white">SEG-GRAD-CAM EXPLAIN</div>
               <div className="text-neuro-text-muted">
-                LAYER: {layerName} · MAP: {featureMapShape}
+                LAYER: up_sampling2d_2 · MAP: {featureMapShape}
               </div>
             </div>
 
@@ -241,6 +210,23 @@ export const SegExplainViewer: React.FC<SegExplainViewerProps> = ({
             </div>
           </>
         )}
+        {isLoading && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="absolute inset-0 z-20 flex items-center justify-center bg-black/75 backdrop-blur-sm"
+          >
+            <div className="rounded-lg border border-neuro-border bg-neuro-surface-200/95 px-6 py-5 text-center shadow-xl">
+              <Loader2 className="mx-auto h-8 w-8 animate-spin text-neuro-accent" />
+              <p className="mt-3 text-sm font-semibold text-neuro-text-primary">
+                Generating explanation…
+              </p>
+              <p className="mt-1 text-xs text-neuro-text-muted">
+                The model is recalculating the selected layer. This may take a little while.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Jet Colormap Legend Bar */}
@@ -257,11 +243,17 @@ export const SegExplainViewer: React.FC<SegExplainViewerProps> = ({
 
       {/* Caption & Disclaimers */}
       <p className="text-[11px] text-neuro-text-muted leading-relaxed">
-        Shows which features drove the total predicted tumor area
-        {isFineLayer ? ' (fine decoder layer up_sampling2d_2 closely follows mask boundaries)' : ''}.
-        The score is the predicted tumor area, so hot regions usually overlap the mask;
-        the map is coarse ({featureMapShape.split('×')[0]?.trim() || '16'} × {featureMapShape.split('×')[1]?.trim() || '16'}) and is not a tumor boundary.
+        Shows features that influenced total predicted tumor probability using the higher-resolution decoder layer.
+        Grad-CAM is not constrained
+        to the predicted mask, may highlight areas outside it, and is not a tumor boundary.
       </p>
+
+      {typeof stats?.heat_mass_in_mask === 'number' && stats.heat_mass_in_mask < 0.01 && (
+        <p className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-2 rounded">
+          This layer’s saliency has little overlap with the predicted tumor region. Try the Fine layer
+          for more spatial detail; its attribution may also extend outside the mask.
+        </p>
+      )}
 
       <div className="text-[10px] text-amber-400/90 font-mono bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded">
         Research/educational use only. Not clinically validated.

@@ -16,7 +16,7 @@ export default function ExportReportButton({ analysis }: ExportReportButtonProps
   };
 
   const handleCopyMarkdown = () => {
-    const md = `# NeuroLens AI — Analysis Report
+    const md = `# NeuroScan — Analysis Report
 **Analysis ID:** ${analysis.id}
 **File Name:** ${analysis.fileName}
 **Date:** ${formatDate(analysis.createdAt)}
@@ -75,7 +75,7 @@ ${(analysis.classification || [])
             <div className="p-6 overflow-y-auto space-y-4 font-sans text-xs scrollbar-thin">
               <div className="p-4 rounded-lg bg-neuro-surface-200 border border-neuro-border space-y-2">
                 <div className="flex justify-between items-center border-b border-neuro-border pb-2">
-                  <span className="text-sm font-bold text-neuro-text-primary">NeuroLens AI Analysis Summary</span>
+                  <span className="text-sm font-bold text-neuro-text-primary">NeuroScan Analysis Summary</span>
                   <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-semibold">
                     Research Demonstration
                   </span>

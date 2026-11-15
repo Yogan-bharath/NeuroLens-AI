@@ -1,4 +1,4 @@
-# NeuroLens AI Integration Reconnaissance Report (Phase 0)
+# NeuroScan Integration Reconnaissance Report (Phase 0)
 
 ## 1. System Architecture & Execution Model
 - **Backend Stack**: FastAPI with Uvicorn ASGI server (`uvicorn app.main:app`), running as a long-running stateful process. Not serverless.

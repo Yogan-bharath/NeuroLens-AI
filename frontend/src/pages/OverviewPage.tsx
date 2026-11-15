@@ -90,7 +90,7 @@ export default function OverviewPage() {
         <div className="flex flex-col gap-4 max-w-4xl">
           <div className="flex items-center gap-2 text-xs font-mono text-neuro-accent tracking-wide uppercase font-semibold">
             <span className="w-2 h-2 rounded-full bg-neuro-accent animate-pulse" />
-            <span>NeuroLens AI — Clinical Command Center</span>
+            <span>NeuroScan — Clinical Command Center</span>
           </div>
           <div className="space-y-2">
             <h1 className="text-2xl sm:text-3xl font-headline font-bold text-white tracking-tight leading-snug">
