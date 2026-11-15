@@ -1,0 +1,148 @@
+[
+  {
+    "id": "efficientnetv2b0",
+    "name": "EfficientNetV2B0",
+    "architecture": "EfficientNetV2-B0 (Fused-MBConv)",
+    "description": "A convolutional neural network optimized for four-class brain MRI classification with fast convergence and low parameter footprint.",
+    "task": "classification",
+    "version": "v2.4.0",
+    "status": "coming_soon",
+    "statusReason": "Trained checkpoint is not installed on host.",
+    "metrics": {
+      "testAccuracy": 0.941,
+      "macroPrecision": 0.938,
+      "macroRecall": 0.935,
+      "macroF1": 0.936,
+      "inferenceTimeMs": 38,
+      "evaluationDataset": "BraTS / Figshare Benchmark Test Split"
+    },
+    "supportedXaiMethods": [
+      "gradcam",
+      "gradcam_pp",
+      "integrated_gradients"
+    ],
+    "compatibleLayers": [
+      {
+        "id": "top_conv",
+        "name": "top_conv",
+        "description": "Final 1\u00d71 convolutional projection layer prior to global pooling",
+        "isVerified": true,
+        "depthDescription": "Depth: Layer 168 \u00b7 Resolution: 8 \u00d7 8"
+      },
+      {
+        "id": "block4b_expand_activation",
+        "name": "block4b_expand_activation",
+        "description": "Intermediate stage expand activation capturing regional mid-level patterns",
+        "isVerified": true,
+        "depthDescription": "Depth: Layer 112 \u00b7 Resolution: 16 \u00d7 16"
+      },
+      {
+        "id": "block3b_expand_activation",
+        "name": "block3b_expand_activation",
+        "description": "Early-mid layer capturing edge and texture representations",
+        "isVerified": false,
+        "depthDescription": "Depth: Layer 74 \u00b7 Resolution: 32 \u00d7 32"
+      }
+    ],
+    "outputClasses": [
+      "Glioma",
+      "Meningioma",
+      "Pituitary",
+      "No Tumor"
+    ],
+    "parametersCount": "6.28M"
+  },
+  {
+    "id": "swin_transformer",
+    "name": "Swin Transformer",
+    "architecture": "Hierarchical Shifted-Window Transformer",
+    "description": "Trained 224 \u00d7 224 RGB Swin Transformer classifier with transformer Grad-CAM.",
+    "task": "classification",
+    "version": "SwinTransformer-224",
+    "status": "coming_soon",
+    "statusReason": "Trained checkpoint is not installed on host.",
+    "metrics": null,
+    "supportedXaiMethods": [
+      "gradcam"
+    ],
+    "compatibleLayers": [
+      {
+        "id": "swin_transformer_block_7",
+        "name": "swin_transformer_block_7",
+        "description": "Final 7 \u00d7 7 shifted-window feature map before global pooling",
+        "isVerified": true,
+        "depthDescription": "Resolution: 7 \u00d7 7"
+      }
+    ],
+    "outputClasses": [
+      "Glioma",
+      "Meningioma",
+      "Pituitary",
+      "No Tumor"
+    ],
+    "parametersCount": "28.3M"
+  },
+  {
+    "id": "densenet121",
+    "name": "DenseNet121",
+    "architecture": "Densely Connected Convolutional Network 121",
+    "description": "A densely connected convolutional architecture that connects each layer to every other layer in a feed-forward fashion.",
+    "task": "classification",
+    "version": "v1.1.0-rc",
+    "status": "coming_soon",
+    "statusReason": "Trained checkpoint is not installed on host.",
+    "metrics": null,
+    "supportedXaiMethods": [
+      "gradcam",
+      "integrated_gradients"
+    ],
+    "compatibleLayers": [
+      {
+        "id": "features.denseblock4",
+        "name": "features.denseblock4",
+        "description": "Final dense block with dense concatenated feature channels",
+        "isVerified": true,
+        "depthDescription": "Depth: Final Dense Block \u00b7 Resolution: 8 \u00d7 8"
+      }
+    ],
+    "outputClasses": [
+      "Glioma",
+      "Meningioma",
+      "Pituitary",
+      "No Tumor"
+    ],
+    "parametersCount": "8.0M"
+  },
+  {
+    "id": "resnet50",
+    "name": "ResNet50",
+    "architecture": "Residual Neural Network 50-Layer",
+    "description": "A deep residual neural network architecture utilizing identity shortcut connections to mitigate vanishing gradient degradation.",
+    "task": "classification",
+    "version": "v2.1.0",
+    "status": "coming_soon",
+    "statusReason": "Trained checkpoint is not installed on host.",
+    "metrics": null,
+    "supportedXaiMethods": [
+      "gradcam",
+      "gradcam_pp",
+      "integrated_gradients"
+    ],
+    "compatibleLayers": [
+      {
+        "id": "layer4.2.conv3",
+        "name": "layer4.2.conv3",
+        "description": "Final bottleneck residual block convolutional layer (Standard Grad-CAM target)",
+        "isVerified": true,
+        "depthDescription": "Depth: Bottleneck 4.2 \u00b7 Resolution: 8 \u00d7 8"
+      }
+    ],
+    "outputClasses": [
+      "Glioma",
+      "Meningioma",
+      "Pituitary",
+      "No Tumor"
+    ],
+    "parametersCount": "23.5M"
+  }
+]
