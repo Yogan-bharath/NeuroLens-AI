@@ -83,7 +83,7 @@ async def _execute_3d_segmentation_pipeline(
     model_id: Optional[str],
     current_user: UserDB,
 ) -> Dict[str, Any]:
-    valid_3d_models = {"brats_3d_unet", "attention_cnn_vit", "attention_vit", "attention_vit_segmentation"}
+    valid_3d_models = {"brats_3d_unet", "unet3d_brats", "attention_cnn_vit", "attention_vit", "attention_vit_segmentation"}
     if model_id and model_id.lower() not in valid_3d_models:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

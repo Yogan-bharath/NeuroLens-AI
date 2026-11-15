@@ -40,6 +40,7 @@ from app.ml.brats_3d_unet import (
     sliding_window_predict,
 )
 from app.ml.model_loader import model_loader
+from app.ml.attention_vit_2d_xai import make_2d_gradcam
 
 # Segmentation class color mapping (Hex and RGBA)
 CLASS_COLORS = {
@@ -861,10 +862,18 @@ class Brats3DSegmentationService:
                     import cv2
                     center_slice_4ch = stacked_volume[:, :, z_slice_idx, :]
                     sl_128 = cv2.resize(center_slice_4ch, (128, 128), interpolation=cv2.INTER_LINEAR)
+                    center_brain_mask = cv2.resize(
+                        (raw_dict["flair"][:, :, z_slice_idx] > 0).astype(np.uint8),
+                        (128, 128),
+                        interpolation=cv2.INTER_NEAREST,
+                    ) > 0
                     for ch in range(4):
-                        nz = sl_128[..., ch] > 0
-                        if np.sum(nz) > 0:
-                            sl_128[..., ch][nz] = (sl_128[..., ch][nz] - np.mean(sl_128[..., ch][nz])) / max(np.std(sl_128[..., ch][nz]), 1e-6)
+                        vals = sl_128[center_brain_mask, ch]
+                        if vals.size:
+                            ch_std = np.std(vals)
+                            if ch_std > 1e-5:
+                                sl_128[center_brain_mask, ch] = (vals - np.mean(vals)) / ch_std
+                        sl_128[~center_brain_mask, ch] = 0.0
 
                     base_pred = model(sl_128[None], training=False).numpy()[0]
                     base_wt = int(np.sum(np.argmax(base_pred, axis=-1) > 0))
@@ -883,24 +892,54 @@ class Brats3DSegmentationService:
                             "impact_level": "High" if abs(change_pct) > 25 else "Moderate" if abs(change_pct) > 10 else "Low",
                         })
 
-                    # Saliency / Attention map overlay
+                    # Notebook-style class-specific Grad-CAM at the spatial bottleneck.
                     flair_slice = sl_128[..., 0]
-                    fig, ax = plt.subplots(figsize=(3, 3), dpi=100)
-                    ax.imshow(flair_slice.T, cmap="gray", origin="lower")
-                    ax.imshow(np.max(base_pred[..., 1:], axis=-1).T, cmap="jet", alpha=0.5, origin="lower")
-                    ax.axis("off")
-                    buf = io.BytesIO()
-                    plt.savefig(buf, format="png", bbox_inches="tight", pad_inches=0)
-                    plt.close(fig)
-                    att_map = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode('utf-8')}"
+                    gradcam_previews = {}
+                    gradcam_errors = {}
+                    targets = [("Whole Tumor", None)] + [
+                        (CLASS_NAMES[class_index], class_index) for class_index in (1, 2, 3)
+                    ]
+                    for class_name, class_index in targets:
+                        try:
+                            cam = make_2d_gradcam(
+                                model,
+                                sl_128,
+                                class_index=class_index,
+                                layer_name="bottleneck_relu2",
+                            )
+                            fig, ax = plt.subplots(figsize=(3, 3), dpi=100)
+                            ax.imshow(flair_slice.T, cmap="gray", origin="lower")
+                            ax.imshow(
+                                np.ma.masked_where(cam.T < 0.25, cam.T),
+                                cmap="jet",
+                                alpha=0.55,
+                                vmin=0,
+                                vmax=1,
+                                origin="lower",
+                            )
+                            ax.axis("off")
+                            buf = io.BytesIO()
+                            plt.savefig(buf, format="png", bbox_inches="tight", pad_inches=0)
+                            plt.close(fig)
+                            gradcam_previews[class_name] = (
+                                f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode('utf-8')}"
+                            )
+                        except Exception as exc:
+                            plt.close("all")
+                            gradcam_errors[class_name] = str(exc)
+                            logger.warning(
+                                "Could not compute 2D Attention-ViT Grad-CAM for %s: %s",
+                                class_name,
+                                exc,
+                            )
 
                     explainability_data = {
-                        "gradcam_layer": "MultiHeadAttention / AttentionGate",
-                        "gradcam_maps": {"Whole Tumor": att_map},
+                        "gradcam_layer": "bottleneck_relu2",
+                        "gradcam_maps": gradcam_previews,
+                        "gradcam_errors": gradcam_errors,
                         "bottleneck_features": {
-                            "shape": [1, 32, 32, 256],
+                            "shape": [1, 16, 16, 256],
                             "channels_count": 256,
-                            "depth_slice": 16,
                         },
                         "modality_ablation": ablation_summary,
                         "uncertainty": {
@@ -961,16 +1000,30 @@ class Brats3DSegmentationService:
         duration_ms = int((time.perf_counter() - start_time) * 1000)
 
         # Build immutable 3D segmentation model metadata snapshot
-        if len(model_in_shape) == 5:
-            model_name = "BraTS 3D Volumetric U-Net"
-            arch_title = "Custom 3D Residual U-Net (3D Patch Convolutions + Deep Supervision)"
-            param_count = "16.4M params"
-            version_str = "v2.4.0 (BraTS-3D)"
+        if model_id == "unet3d_brats" or len(model_in_shape) == 5:
+            model_name = "3D U-Net (volumetric)"
+            arch_title = "3D Encoder-Decoder Convolutional Network (Conv3D + BatchNorm)"
+            param_count = "5.61M params (5,606,628)"
+            version_str = "BraTS-3D-UNet-v1"
+            banner_text = "GENUINE MODEL PREDICTION - 3D GRAD-CAM (BOTTLENECK, PATCH-LEVEL)"
+            provenance_info = {
+                "cohort": "BraTS 2020, patient-level split, complete-volume sliding-window evaluation on 56 held-out patients",
+                "whole_tumor_dice": 0.829760,
+                "tumor_core_dice": 0.696069,
+                "necrotic_dice": 0.470383,
+                "edema_dice": 0.694502,
+                "enhancing_dice": 0.641072,
+                "mean_foreground_dice": 0.601986,
+                "pixel_accuracy": 0.995746,
+                "comparison_note": "The 2D Attention CNN + ViT whole-tumor Dice of 0.8937 used selected tumor-enriched slices; the protocols differ, so the numbers are not a head-to-head comparison.",
+            }
         else:
-            model_name = "Attention CNN + Vision Transformer"
+            model_name = "Attention CNN + Vision Transformer (2D)"
             arch_title = "Hybrid Attention CNN + Vision Transformer (Additive Attention Gates + Transformer Bottleneck)"
             param_count = "3.07M params"
             version_str = "v2.4.0 (BraTS-Multimodal)"
+            banner_text = None
+            provenance_info = None
 
         now_iso = datetime.now(timezone.utc).isoformat()
         actual_model = {
@@ -997,6 +1050,8 @@ class Brats3DSegmentationService:
             "model_id": model_id,
             "model_name": model_name,
             "model_version": version_str,
+            "banner": banner_text,
+            "provenance": provenance_info,
             "actual_model": actual_model,
             "volume_dimensions": [int(H), int(W), int(D)],
             "voxel_spacing": [round(float(z), 3) for z in zooms],
@@ -1011,10 +1066,7 @@ class Brats3DSegmentationService:
             "surface_3d": surface_3d,
             "evaluation_metrics": evaluation_metrics,
             "explainability": explainability_data,
-            "disclaimer": (
-                "Research model output only. Not approved for clinical diagnostics or therapeutic decision-making. "
-                "Trained on BraTS 2020 multimodal volumetric MRI benchmark dataset."
-            ),
+            "disclaimer": "Research/educational use only. Not clinically validated.",
         }
 
     def get_prediction_bytes(self, prediction_id: str) -> Optional[Tuple[bytes, str]]:

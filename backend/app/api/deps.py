@@ -68,7 +68,7 @@ async def get_current_user_optional(
     return UserDB(
         _id=user_id,
         name=payload.get("name", "Researcher"),
-        email=payload.get("email", "researcher@neurolens.ai"),
+        email=payload.get("email", "researcher@example.com"),
         password_hash="",
         role=payload.get("role", "researcher")
     )
@@ -97,7 +97,7 @@ async def get_current_user_or_default(
     return UserDB(
         _id="guest_researcher",
         name="Guest Researcher",
-        email="guest@neurolens.ai",
+        email="guest@example.com",
         password_hash="",
         role="researcher"
     )

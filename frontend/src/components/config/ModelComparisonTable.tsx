@@ -202,7 +202,7 @@ export default function ModelComparisonTable({
           <div className="flex items-start gap-2 p-3 rounded-lg bg-neuro-surface-200 border border-neuro-border text-[11px] text-neuro-text-muted">
             <Info className="w-4 h-4 text-neuro-accent flex-shrink-0 mt-0.5" />
             <p>
-              <strong>Data Transparency Notice:</strong> Metrics displayed are derived from verified cross-validation benchmarks. Unintegrated or in-training models are strictly labeled as &quot;Not evaluated&quot;. NeuroLens AI does not declare architectural superiority without standardized, identical evaluation split measurements.
+              <strong>Data Transparency Notice:</strong> Metrics displayed are derived from verified cross-validation benchmarks. Unintegrated or in-training models are strictly labeled as &quot;Not evaluated&quot;. NeuroScan does not declare architectural superiority without standardized, identical evaluation split measurements.
             </p>
           </div>
         </div>

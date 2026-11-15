@@ -50,7 +50,7 @@ def base64_data_url_to_bytes(data_url: str) -> bytes:
                 return disk_path.read_bytes()
     if data_url.startswith("http://") or data_url.startswith("https://"):
         import urllib.request
-        req = urllib.request.Request(data_url, headers={"User-Agent": "NeuroLens-Backend/1.0"})
+        req = urllib.request.Request(data_url, headers={"User-Agent": "NeuroScan-Backend/1.0"})
         with urllib.request.urlopen(req, timeout=10) as response:
             return response.read()
     if "," in data_url:

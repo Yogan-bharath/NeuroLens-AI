@@ -67,7 +67,7 @@ export default function ExplainabilityPage() {
   const [xaiGenError, setXaiGenError] = useState<string | null>(null);
 
   // 3D Segmentation XAI Controls
-  const [segXaiTab, setSegXaiTab] = useState<'slices' | 'ablation' | 'uncertainty' | 'localization'>('slices');
+  const [segXaiTab, setSegXaiTab] = useState<'gradcam' | 'slices' | 'ablation' | 'uncertainty' | 'localization'>('slices');
   const [activePlane, setActivePlane] = useState<'axial' | 'coronal' | 'sagittal'>('axial');
 
   // Fetch history list
@@ -103,6 +103,11 @@ export default function ExplainabilityPage() {
           return;
         }
         setAnalysisData(data);
+        setSegXaiTab(
+          Object.keys(data.explainability?.gradcam_maps || {}).length > 0
+            ? 'gradcam'
+            : 'slices',
+        );
       })
       .catch(err => {
         setError(err instanceof Error ? err.message : 'Failed to retrieve analysis.');
@@ -209,8 +214,11 @@ export default function ExplainabilityPage() {
   const processingTimeMs = actualModel.inference_time_ms || analysisData?.processing_time_ms || analysisData?.metadata?.processingTimeMs || 0;
   const architecture = actualModel.architecture || (isSwin ? 'Hierarchical Shifted-Window Transformer (Shifted-Window Self-Attention + Patch Merging)' : 'EfficientNetV2-B0 (Fused-MBConv + Squeeze-and-Excitation)');
   const parametersCount = actualModel.parameters_count || (isSwin ? '28.3M params' : '7.11M params');
-  const targetLayerDisplay = isSwin ? 'swin_transformer_block_7' : 'top_conv (1280 channels)';
-  const inputResolution = actualModel.input_resolution || (isSwin ? '224 × 224 × 3 RGB' : '128 × 128 × 3 RGB');
+  const modelId = actualModel.model_id || analysisData?.model_id || (isSwin ? 'swin_transformer' : (modelName.includes('256') ? 'efficientnetv2b0_256' : 'efficientnetv2b0'));
+  const isEff256 = modelId === 'efficientnetv2b0_256' || modelName.includes('256') || Boolean(actualModel.input_resolution?.includes('256'));
+  const targetLayerDisplay = analysisData?.explanations?.[0]?.layerName || (isSwin ? 'swin_transformer_block_7' : (isEff256 ? 'top_activation' : 'top_conv'));
+  const featureMapDisplay = analysisData?.explanations?.[0]?.featureMapShape || (isSwin ? '7 × 7 × 768' : (isEff256 ? '8 × 8 × 1280' : '8 × 8'));
+  const inputResolution = actualModel.input_resolution || (isSwin ? '224 × 224 × 3 RGB' : (isEff256 ? '256 × 256 × 3 RGB' : '128 × 128 × 3 RGB'));
   const framework = actualModel.framework || 'TensorFlow 2.18 / Keras 3';
 
   // Real 2D Image & Heatmaps
@@ -258,6 +266,8 @@ export default function ExplainabilityPage() {
   const evalMetrics = analysisData?.evaluation_metrics;
   const ablationStudy = analysisData?.explainability?.modality_ablation || [];
   const uncertainty = analysisData?.explainability?.uncertainty;
+  const gradcamMaps: Record<string, string> = analysisData?.explainability?.gradcam_maps || {};
+  const gradcamErrors: Record<string, string> = analysisData?.explainability?.gradcam_errors || {};
 
   const getBlendClass = () => {
     if (blendMode === 'screen') return 'mix-blend-screen';
@@ -636,7 +646,7 @@ export default function ExplainabilityPage() {
                 <span className="font-mono text-[10px] text-neuro-accent px-1.5 py-0.5 bg-neuro-accent/10 rounded uppercase font-semibold">
                   {selectedMethod === 'segmentation'
                     ? `MODEL: ${analysisData?.segmentation_model_used === 'deeplabv3plus' ? 'DEEPLABV3+' : 'BRISC U-NET'}`
-                    : `LAYER: ${isSwin ? 'SWIN_BLOCK_7' : 'TOP_CONV'}`}
+                    : `LAYER: ${targetLayerDisplay} · MAP: ${featureMapDisplay}`}
                 </span>
               </div>
 
@@ -824,11 +834,15 @@ export default function ExplainabilityPage() {
               </div>
 
               <p className="text-[11px] text-neuro-text-secondary leading-relaxed">
-                {selectedMethod === 'gradcam_pp' ? 'Grad-CAM++' : 'Grad-CAM'} computes the gradient of the predicted class score ({topPrediction}) with respect to the feature map activations of layer <code className="text-neuro-accent">{isSwin ? 'swin_transformer_block_7' : 'top_conv'}</code> of the {modelName} model.
+                {selectedMethod === 'gradcam_pp' ? 'Grad-CAM++' : 'Grad-CAM'} computes the gradient of the predicted class score ({topPrediction}) with respect to the feature map activations of layer <code className="text-neuro-accent">{targetLayerDisplay}</code> ({featureMapDisplay}) of the {modelName} model.
               </p>
               <p className="text-[11px] text-neuro-text-muted leading-relaxed">
                 Warm highlights represent regions where visual textures (such as contrast enhancement or irregular boundaries) exerted maximal positive influence on the classification output.
               </p>
+
+              <div className="text-[10px] text-amber-400/90 font-mono bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded">
+                Research/educational use only. Not clinically validated. Saliency highlights coarse regions influencing prediction.
+              </div>
 
               <div className="pt-2 border-t border-neuro-border/40 flex items-center justify-between text-[10px] font-mono text-neuro-text-muted">
                 <span>Status: Fully Model-Derived</span>
@@ -879,8 +893,18 @@ export default function ExplainabilityPage() {
             {/* Segmentation XAI Tabs */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-neuro-border/60">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-neuro-text-muted uppercase font-bold">3D Attribution Aspect:</span>
+                <span className="text-[10px] font-mono text-neuro-text-muted uppercase font-bold">Segmentation XAI:</span>
                 <div className="flex items-center bg-neuro-surface-300 p-0.5 rounded-lg border border-neuro-border text-xs">
+                  {Object.keys(gradcamMaps).length > 0 && (
+                    <button
+                      onClick={() => setSegXaiTab('gradcam')}
+                      className={`px-3 py-1 rounded font-semibold font-mono transition-colors ${
+                        segXaiTab === 'gradcam' ? 'bg-cyan-400 text-black' : 'text-neuro-text-secondary hover:text-white'
+                      }`}
+                    >
+                      Class Grad-CAM
+                    </button>
+                  )}
                   <button
                     onClick={() => setSegXaiTab('slices')}
                     className={`px-3 py-1 rounded font-semibold font-mono transition-colors ${
@@ -936,6 +960,51 @@ export default function ExplainabilityPage() {
               )}
             </div>
           </div>
+
+          {/* SUB-VIEW: Notebook-style class-specific Grad-CAM */}
+          {segXaiTab === 'gradcam' && (
+            <div className="p-5 rounded-xl bg-neuro-surface-200 border border-neuro-border space-y-4 shadow-sm">
+              <div className="flex items-center justify-between border-b border-neuro-border pb-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                    Class-Specific Grad-CAM
+                  </h3>
+                </div>
+                <span className="text-[10px] font-mono text-cyan-400">
+                  Layer: {analysisData?.explainability?.gradcam_layer || 'bottleneck_relu2'}
+                </span>
+              </div>
+              <p className="text-xs text-neuro-text-secondary">
+                Positive attribution overlays for the predicted whole-tumor score and each tumor class on the axial FLAIR slice with the most predicted tumor.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                {Object.entries(gradcamMaps).map(([className, imageUrl]) => (
+                  <figure key={className} className="rounded-lg border border-neuro-border bg-black/50 p-2 space-y-2">
+                    <figcaption className="text-[11px] text-neuro-text-primary font-semibold text-center">
+                      {className}
+                    </figcaption>
+                    <img
+                      src={imageUrl}
+                      alt={`${className} Grad-CAM overlay on FLAIR`}
+                      className="w-full aspect-square object-contain rounded"
+                    />
+                  </figure>
+                ))}
+              </div>
+              {Object.keys(gradcamErrors).length > 0 && (
+                <div role="status" className="rounded border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200 space-y-1">
+                  <p>Some class maps could not be generated:</p>
+                  {Object.entries(gradcamErrors).map(([className, message]) => (
+                    <p key={className}>{className}: {message}</p>
+                  ))}
+                </div>
+              )}
+              <p className="text-[10px] text-amber-300 border-t border-neuro-border pt-3">
+                Research/educational attribution only. Grad-CAM is not a segmentation mask or a clinical diagnostic.
+              </p>
+            </div>
+          )}
 
           {/* SUB-VIEW 1: Multiplanar Slices with Real Segmented Masks */}
           {segXaiTab === 'slices' && (

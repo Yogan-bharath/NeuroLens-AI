@@ -1,0 +1,84 @@
+PHASE 0 TEST DIAGNOSIS BASELINE
+============================================================
+test_health.py                        : TIMEOUT/HANG (40.03s)
+test_auth.py                          : TIMEOUT/HANG (40.03s)
+test_models.py                        : TIMEOUT/HANG (40.03s)
+test_uploads.py                       : TIMEOUT/HANG (40.0s)
+test_chat.py                          : TIMEOUT/HANG (40.02s)
+test_reports.py                       : TIMEOUT/HANG (40.03s)
+test_history.py                       : TIMEOUT/HANG (40.02s)
+test_analyses.py                      : TIMEOUT/HANG (40.02s)
+test_explainability.py                : TIMEOUT/HANG (40.03s)
+test_separate_workflows.py            : TIMEOUT/HANG (40.03s)
+test_model_selection_persistence.py   : TIMEOUT/HANG (40.02s)
+test_persistence_and_performance.py   : TIMEOUT/HANG (40.03s)
+test_segmentation_routing_and_xai.py  : TIMEOUT/HANG (40.02s)
+test_dynamic_workflows_and_xai.py     : TIMEOUT/HANG (40.03s)
+test_brats_3d_service.py              : PASSED (15.28s)
+
+
+DETAILS:
+============================================================
+
+--- test_health.py ---
+
+
+--- test_auth.py ---
+
+
+--- test_models.py ---
+
+
+--- test_uploads.py ---
+
+
+--- test_chat.py ---
+
+
+--- test_reports.py ---
+
+
+--- test_history.py ---
+
+
+--- test_analyses.py ---
+
+
+--- test_explainability.py ---
+
+
+--- test_separate_workflows.py ---
+
+
+--- test_model_selection_persistence.py ---
+
+
+--- test_persistence_and_performance.py ---
+
+
+--- test_segmentation_routing_and_xai.py ---
+
+
+--- test_dynamic_workflows_and_xai.py ---
+
+
+--- test_brats_3d_service.py ---
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-9.1.1, pluggy-1.7.0 -- C:\Users\BHARATH\OneDrive\Desktop\NeuroLens AI\backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\BHARATH\OneDrive\Desktop\NeuroLens AI
+configfile: pytest.ini
+plugins: anyio-4.15.1, asyncio-1.4.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 7 items
+
+backend/tests/test_brats_3d_service.py::test_prepare_multimodal_volumes_uses_training_order_and_normalization PASSED [ 14%]
+backend/tests/test_brats_3d_service.py::test_prepare_multimodal_volumes_rejects_affine_mismatch PASSED [ 28%]
+backend/tests/test_brats_3d_service.py::test_serialized_prediction_preserves_nifti_spatial_metadata PASSED [ 42%]
+backend/tests/test_brats_3d_service.py::test_sliding_window_predict_aggregates_overlapping_patch_outputs PASSED [ 57%]
+backend/tests/test_brats_3d_service.py::test_ground_truth_mapping_and_absent_class_metrics_follow_policy PASSED [ 71%]
+backend/tests/test_brats_3d_service.py::test_ground_truth_mapping_rejects_unexpected_braTS_labels PASSED [ 85%]
+backend/tests/test_brats_3d_service.py::test_exported_segmentation_uses_original_braTS_enhancing_label PASSED [100%]
+
+============================== 7 passed in 0.53s ==============================
+

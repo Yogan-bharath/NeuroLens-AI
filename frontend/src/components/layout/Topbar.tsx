@@ -20,7 +20,7 @@ export default function Topbar() {
   const location = useLocation();
 
   const pageTitle = pageTitles[location.pathname] ||
-    (location.pathname.startsWith('/analysis/') ? 'Analysis Workspace' : 'NeuroLens AI');
+    (location.pathname.startsWith('/analysis/') ? 'Analysis Workspace' : 'NeuroScan');
 
   return (
     <header className="sticky top-0 z-20 bg-neuro-bg/80 backdrop-blur-md border-b border-neuro-border transition-colors">

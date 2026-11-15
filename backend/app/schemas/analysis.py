@@ -70,6 +70,8 @@ class ExplanationResultItem(BaseModel):
     targetClass: str
     layerName: str
     description: str
+    featureMapShape: Optional[str] = None
+    disclaimer: Optional[str] = None
 
 
 class SegmentationClassItem(BaseModel):

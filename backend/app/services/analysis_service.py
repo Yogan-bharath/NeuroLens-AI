@@ -661,7 +661,7 @@ class AnalysisService:
 
         # Extract thumbnails and findings
         thumb = ""
-        pred_class = "Combined NeuroLens Study"
+        pred_class = "Combined NeuroScan Study"
         conf = 0.0
         if classification_result:
             thumb = classification_result.get("image_url") or classification_result.get("thumbnailUrl", "")

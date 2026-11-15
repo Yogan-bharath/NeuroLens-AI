@@ -1,0 +1,57 @@
+{
+  "checkpoint_exists": true,
+  "checkpoint_path": "C:\\Users\\BHARATH\\OneDrive\\Desktop\\NeuroLens AI\\backend\\model_artifacts\\brats_3d_unet\\best_3d_unet_model.keras",
+  "architecture_initialized": true,
+  "tensorflow_version": "2.21.0",
+  "gpu_available": false,
+  "gpu_count": 0,
+  "segmentation_ready": true,
+  "model_details": {
+    "name": "Attention CNN + ViT (BraTS Multimodal)",
+    "framework": "TensorFlow / Keras",
+    "patch_size": [
+      96,
+      96,
+      64
+    ],
+    "stride": [
+      64,
+      64,
+      32
+    ],
+    "modalities": [
+      "FLAIR",
+      "T1",
+      "T1CE",
+      "T2"
+    ],
+    "classes": [
+      {
+        "index": 0,
+        "name": "Background",
+        "source_label": 0,
+        "color": "#000000"
+      },
+      {
+        "index": 1,
+        "name": "Necrotic / Non-enhancing",
+        "source_label": 1,
+        "color": "#EF4444"
+      },
+      {
+        "index": 2,
+        "name": "Peritumoral Edema",
+        "source_label": 2,
+        "color": "#10B981"
+      },
+      {
+        "index": 3,
+        "name": "Enhancing Tumor",
+        "source_label": 4,
+        "color": "#F59E0B"
+      }
+    ],
+    "target_xai_layer": "bottleneck_relu2"
+  },
+  "status_reason": null
+}

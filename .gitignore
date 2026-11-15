@@ -1,0 +1,7 @@
+backend/storage/debug/
+backend/storage/uploads/
+backend/storage/volumes/
+__pycache__/
+*.pyc
+.env
+

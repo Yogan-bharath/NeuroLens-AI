@@ -1,0 +1,376 @@
+{
+  "classification": [
+    {
+      "id": "efficientnetv2b0",
+      "name": "EfficientNetV2B0",
+      "architecture": "EfficientNetV2-B0 (Fused-MBConv)",
+      "description": "A convolutional neural network optimized for four-class brain MRI classification with fast convergence and low parameter footprint.",
+      "task": "classification",
+      "version": "v2.4.0",
+      "status": "coming_soon",
+      "statusReason": "Trained checkpoint is not installed on host.",
+      "metrics": {
+        "testAccuracy": 0.941,
+        "macroPrecision": 0.938,
+        "macroRecall": 0.935,
+        "macroF1": 0.936,
+        "inferenceTimeMs": 38,
+        "evaluationDataset": "BraTS / Figshare Benchmark Test Split"
+      },
+      "supportedXaiMethods": [
+        "gradcam",
+        "gradcam_pp",
+        "integrated_gradients"
+      ],
+      "compatibleLayers": [
+        {
+          "id": "top_conv",
+          "name": "top_conv",
+          "description": "Final 1\u00d71 convolutional projection layer prior to global pooling",
+          "isVerified": true,
+          "depthDescription": "Depth: Layer 168 \u00b7 Resolution: 8 \u00d7 8"
+        },
+        {
+          "id": "block4b_expand_activation",
+          "name": "block4b_expand_activation",
+          "description": "Intermediate stage expand activation capturing regional mid-level patterns",
+          "isVerified": true,
+          "depthDescription": "Depth: Layer 112 \u00b7 Resolution: 16 \u00d7 16"
+        },
+        {
+          "id": "block3b_expand_activation",
+          "name": "block3b_expand_activation",
+          "description": "Early-mid layer capturing edge and texture representations",
+          "isVerified": false,
+          "depthDescription": "Depth: Layer 74 \u00b7 Resolution: 32 \u00d7 32"
+        }
+      ],
+      "outputClasses": [
+        "Glioma",
+        "Meningioma",
+        "Pituitary",
+        "No Tumor"
+      ],
+      "parametersCount": "6.28M"
+    },
+    {
+      "id": "swin_transformer",
+      "name": "Swin Transformer",
+      "architecture": "Hierarchical Shifted-Window Transformer",
+      "description": "Trained 224 \u00d7 224 RGB Swin Transformer classifier with transformer Grad-CAM.",
+      "task": "classification",
+      "version": "SwinTransformer-224",
+      "status": "coming_soon",
+      "statusReason": "Trained checkpoint is not installed on host.",
+      "metrics": null,
+      "supportedXaiMethods": [
+        "gradcam"
+      ],
+      "compatibleLayers": [
+        {
+          "id": "swin_transformer_block_7",
+          "name": "swin_transformer_block_7",
+          "description": "Final 7 \u00d7 7 shifted-window feature map before global pooling",
+          "isVerified": true,
+          "depthDescription": "Resolution: 7 \u00d7 7"
+        }
+      ],
+      "outputClasses": [
+        "Glioma",
+        "Meningioma",
+        "Pituitary",
+        "No Tumor"
+      ],
+      "parametersCount": "28.3M"
+    },
+    {
+      "id": "densenet121",
+      "name": "DenseNet121",
+      "architecture": "Densely Connected Convolutional Network 121",
+      "description": "A densely connected convolutional architecture that connects each layer to every other layer in a feed-forward fashion.",
+      "task": "classification",
+      "version": "v1.1.0-rc",
+      "status": "coming_soon",
+      "statusReason": "Trained checkpoint is not installed on host.",
+      "metrics": null,
+      "supportedXaiMethods": [
+        "gradcam",
+        "integrated_gradients"
+      ],
+      "compatibleLayers": [
+        {
+          "id": "features.denseblock4",
+          "name": "features.denseblock4",
+          "description": "Final dense block with dense concatenated feature channels",
+          "isVerified": true,
+          "depthDescription": "Depth: Final Dense Block \u00b7 Resolution: 8 \u00d7 8"
+        }
+      ],
+      "outputClasses": [
+        "Glioma",
+        "Meningioma",
+        "Pituitary",
+        "No Tumor"
+      ],
+      "parametersCount": "8.0M"
+    },
+    {
+      "id": "resnet50",
+      "name": "ResNet50",
+      "architecture": "Residual Neural Network 50-Layer",
+      "description": "A deep residual neural network architecture utilizing identity shortcut connections to mitigate vanishing gradient degradation.",
+      "task": "classification",
+      "version": "v2.1.0",
+      "status": "coming_soon",
+      "statusReason": "Trained checkpoint is not installed on host.",
+      "metrics": null,
+      "supportedXaiMethods": [
+        "gradcam",
+        "gradcam_pp",
+        "integrated_gradients"
+      ],
+      "compatibleLayers": [
+        {
+          "id": "layer4.2.conv3",
+          "name": "layer4.2.conv3",
+          "description": "Final bottleneck residual block convolutional layer (Standard Grad-CAM target)",
+          "isVerified": true,
+          "depthDescription": "Depth: Bottleneck 4.2 \u00b7 Resolution: 8 \u00d7 8"
+        }
+      ],
+      "outputClasses": [
+        "Glioma",
+        "Meningioma",
+        "Pituitary",
+        "No Tumor"
+      ],
+      "parametersCount": "23.5M"
+    }
+  ],
+  "segmentation": [
+    {
+      "id": "brats_3d_unet",
+      "name": "Attention CNN + Vision Transformer (BraTS Multimodal)",
+      "architecture": "Hybrid Attention CNN + Vision Transformer with Additive Attention Gates",
+      "description": "Four-modality volumetric 3D segmentation utilizing aligned FLAIR, T1, T1CE, and T2 sequences. Delineates Necrotic Core, Peritumoral Edema, and Enhancing Tumor.",
+      "task": "Multimodal 3D Semantic Segmentation",
+      "version": "v2.4.0 (BraTS-2020)",
+      "status": "coming_soon",
+      "statusReason": "The trained checkpoint has not been loaded and inference-validated.",
+      "metrics": {
+        "diceCoefficient": 0.8298,
+        "iouScore": 0.7283,
+        "sensitivity": 0.841,
+        "inferenceTimeMs": 182,
+        "evaluationDataset": "BraTS 2020 Multimodal 56 Test Patient Cohort (Complete Volumes)"
+      },
+      "classes": [
+        "Background",
+        "Necrotic / non-enhancing tumor",
+        "Peritumoral edema",
+        "Enhancing tumor"
+      ],
+      "parametersCount": "3.07M",
+      "supportedXaiMethods": [
+        "gradcam",
+        "modality_ablation"
+      ],
+      "compatibleLayers": [
+        {
+          "id": "attention_gate_2",
+          "name": "attention_gate_2",
+          "description": "Deepest attention gate isolating active enhancing tumor boundaries",
+          "isVerified": true,
+          "depthDescription": "Decoder Level 2 \u00b7 Multi-Head Attention"
+        }
+      ]
+    },
+    {
+      "id": "deeplabv3plus",
+      "name": "DeepLabV3+",
+      "architecture": "DeepLabV3+ with ResNet encoder and atrous spatial pyramid pooling",
+      "description": "Binary MRI lesion segmentation model with a 256 \u00d7 256 RGB input and sigmoid output.",
+      "task": "Binary Lesion Segmentation",
+      "version": "DeepLabV3Plus-256",
+      "status": "coming_soon",
+      "statusReason": "The trained checkpoint has not been loaded and inference-validated.",
+      "metrics": null,
+      "classes": [
+        "Tumor Lesion"
+      ],
+      "parametersCount": "17.8M",
+      "supportedXaiMethods": [
+        "seg_gradcam"
+      ],
+      "compatibleLayers": [
+        {
+          "id": "conv2d_26",
+          "name": "conv2d_26",
+          "description": "Decoder feature map before the final sigmoid segmentation projection",
+          "isVerified": true,
+          "depthDescription": "DeepLab decoder feature map"
+        }
+      ]
+    },
+    {
+      "id": "attention_vit_segmentation",
+      "name": "2D Attention CNN + ViT (BraTS Multimodal)",
+      "architecture": "Hybrid Attention CNN + Vision Transformer with Additive Attention Gates",
+      "description": "Four-modality 2D slice segmentation utilizing aligned FLAIR, T1, T1CE, and T2 sequences. Delineates Necrotic Core, Peritumoral Edema, and Enhancing Tumor.",
+      "task": "Multimodal 2D Semantic Segmentation",
+      "version": "v2.4.0 (BraTS-2D)",
+      "status": "coming_soon",
+      "statusReason": "The trained checkpoint has not been loaded and inference-validated.",
+      "metrics": {
+        "diceCoefficient": 0.8298,
+        "iouScore": 0.7283,
+        "sensitivity": 0.841,
+        "inferenceTimeMs": 85,
+        "evaluationDataset": "BraTS 2020 Multimodal Test Cohort"
+      },
+      "classes": [
+        "Background",
+        "Necrotic / non-enhancing tumor",
+        "Peritumoral edema",
+        "Enhancing tumor"
+      ],
+      "parametersCount": "3.07M",
+      "supportedXaiMethods": [
+        "gradcam",
+        "modality_ablation"
+      ],
+      "compatibleLayers": [
+        {
+          "id": "attention_gate_2",
+          "name": "attention_gate_2",
+          "description": "Deepest attention gate isolating active enhancing tumor boundaries",
+          "isVerified": true,
+          "depthDescription": "Decoder Level 2 \u00b7 Multi-Head Attention"
+        }
+      ]
+    },
+    {
+      "id": "unet",
+      "name": "BRISC Binary U-Net",
+      "architecture": "Encoder-Decoder with Symmetric Skip Connections",
+      "description": "A convolutional encoder-decoder architecture structured for binary lesion segmentation (128\u00d7128 resolution, single output channel, threshold 0.5).",
+      "task": "Binary Lesion Segmentation",
+      "version": "BRISC-Binary-UNet-Best",
+      "status": "coming_soon",
+      "statusReason": "The trained checkpoint has not been loaded and inference-validated.",
+      "metrics": {
+        "diceCoefficient": 0.884,
+        "iouScore": 0.792,
+        "sensitivity": 0.891,
+        "inferenceTimeMs": 42,
+        "evaluationDataset": "BRISC 2025 Test Split"
+      },
+      "classes": [
+        "Tumor Lesion"
+      ],
+      "parametersCount": "7.86M",
+      "supportedXaiMethods": [
+        "seg_gradcam"
+      ],
+      "compatibleLayers": [
+        {
+          "id": "bottleneck.conv2",
+          "name": "bottleneck.conv2",
+          "description": "Deepest latent feature representation capturing global spatial context and tissue contrast",
+          "isVerified": true,
+          "depthDescription": "Depth: Bottleneck Latent Layer \u00b7 512 Channels \u00b7 16 \u00d7 16"
+        },
+        {
+          "id": "decoder.upconv3",
+          "name": "decoder.upconv3",
+          "description": "Expanding decoder stage resolving fine boundary gradients around tumor margins",
+          "isVerified": true,
+          "depthDescription": "Depth: Decoder Stage 3 \u00b7 128 Channels \u00b7 64 \u00d7 64"
+        }
+      ]
+    }
+  ],
+  "xai_methods": [
+    {
+      "id": "gradcam",
+      "name": "Grad-CAM",
+      "description": "Highlights image regions that influence the selected classification output using gradients flowing into the final convolutional feature maps.",
+      "task": "classification",
+      "status": "available",
+      "statusReason": null,
+      "supportsLayerSelection": true,
+      "supportedModels": [
+        "efficientnetv2b0",
+        "swin_transformer"
+      ],
+      "type": "gradient_activation"
+    },
+    {
+      "id": "gradcam_pp",
+      "name": "Grad-CAM++",
+      "description": "A gradient-based class activation mapping method that utilizes weighted positive higher-order partial derivatives to provide finer spatial explanations.",
+      "task": "classification",
+      "status": "available",
+      "statusReason": null,
+      "supportsLayerSelection": true,
+      "supportedModels": [
+        "efficientnetv2b0"
+      ],
+      "type": "gradient_activation"
+    },
+    {
+      "id": "integrated_gradients",
+      "name": "Integrated Gradients",
+      "description": "Attributes a model output to input pixels by accumulating gradients along a linear path between a neutral baseline image and the input scan.",
+      "task": "classification",
+      "status": "available",
+      "statusReason": null,
+      "supportsLayerSelection": false,
+      "supportedModels": [
+        "efficientnetv2b0"
+      ],
+      "type": "path_integral"
+    },
+    {
+      "id": "seg_gradcam",
+      "name": "Mask-Targeted Grad-CAM",
+      "description": "Computes backpropagated gradients targeting the summed logit activations of the predicted lesion mask to reveal which latent feature channels drove boundary delineation.",
+      "task": "segmentation",
+      "status": "available",
+      "statusReason": null,
+      "supportsLayerSelection": true,
+      "supportedModels": [
+        "unet",
+        "deeplabv3plus",
+        "brats_3d_unet"
+      ],
+      "type": "gradient_activation"
+    },
+    {
+      "id": "mask_guided_cam",
+      "name": "Mask-Guided CAM",
+      "description": "Isolates activation maps spatially conditioned on the segmented Tumor Core ROI, explaining internal heterogeneity within the lesion.",
+      "task": "segmentation",
+      "status": "available",
+      "statusReason": null,
+      "supportsLayerSelection": true,
+      "supportedModels": [
+        "unet"
+      ],
+      "type": "gradient_activation"
+    },
+    {
+      "id": "seg_integrated_gradients",
+      "name": "Segmentation Integrated Gradients",
+      "description": "Calculates path-integral pixel attributions directly conditioned on the segmentation mask loss against a blank reference baseline.",
+      "task": "segmentation",
+      "status": "available",
+      "statusReason": null,
+      "supportsLayerSelection": false,
+      "supportedModels": [
+        "unet"
+      ],
+      "type": "path_integral"
+    }
+  ]
+}

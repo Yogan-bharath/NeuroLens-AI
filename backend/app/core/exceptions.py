@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from typing import Optional, Any, Dict
 
 
-class NeuroLensException(HTTPException):
+class NeuroScanException(HTTPException):
     def __init__(
         self,
         status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -15,7 +15,7 @@ class NeuroLensException(HTTPException):
         self.extra = extra or {}
 
 
-class AuthenticationException(NeuroLensException):
+class AuthenticationException(NeuroScanException):
     def __init__(self, detail: str = "Could not validate credentials"):
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -24,7 +24,7 @@ class AuthenticationException(NeuroLensException):
         )
 
 
-class PermissionDeniedException(NeuroLensException):
+class PermissionDeniedException(NeuroScanException):
     def __init__(self, detail: str = "Not authorized to access this resource"):
         super().__init__(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -33,7 +33,7 @@ class PermissionDeniedException(NeuroLensException):
         )
 
 
-class ResourceNotFoundException(NeuroLensException):
+class ResourceNotFoundException(NeuroScanException):
     def __init__(self, resource: str, identifier: str):
         super().__init__(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -42,7 +42,7 @@ class ResourceNotFoundException(NeuroLensException):
         )
 
 
-class InvalidConfigurationException(NeuroLensException):
+class InvalidConfigurationException(NeuroScanException):
     def __init__(self, detail: str):
         super().__init__(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -51,7 +51,7 @@ class InvalidConfigurationException(NeuroLensException):
         )
 
 
-class ModelUnavailableException(NeuroLensException):
+class ModelUnavailableException(NeuroScanException):
     def __init__(self, model_id: str, reason: str = "Model weights or runtime not loaded"):
         super().__init__(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -60,7 +60,7 @@ class ModelUnavailableException(NeuroLensException):
         )
 
 
-class StorageException(NeuroLensException):
+class StorageException(NeuroScanException):
     def __init__(self, detail: str = "Storage service failure"):
         super().__init__(
             status_code=status.HTTP_502_BAD_GATEWAY,

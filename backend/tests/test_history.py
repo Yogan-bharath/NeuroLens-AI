@@ -20,7 +20,7 @@ async def test_history_and_user_isolation(client: AsyncClient, synthetic_mri_byt
     # 3. User B token
     user_b_token = create_access_token(
         subject="user_b_456",
-        extra_claims={"email": "user_b@neurolens.ai", "name": "User B", "role": "researcher"}
+        extra_claims={"email": "user_b@example.com", "name": "User B", "role": "researcher"}
     )
     user_b_headers = {"Authorization": f"Bearer {user_b_token}"}
 

@@ -36,27 +36,46 @@ class ClassificationService:
             model = model_loader.get_classification_model(model_id)
             classes = model_loader.get_class_names(model_id)
 
-            cls_batch = (preprocessing_service.preprocess_for_swin_transformer(image_bytes)
-                         if model_id == "swin_transformer"
-                         else preprocessing_service.preprocess_for_classifier(image_bytes, use_clahe=use_clahe))
-
-            # Raw output from Keras model
-            raw_scores = model(cls_batch, training=False).numpy()[0]
-            pred_idx = int(np.argmax(raw_scores))
-            top_class = classes[pred_idx] if pred_idx < len(classes) else f"class_{pred_idx}"
-
-            # Verify if output is already softmax or raw logits
-            is_valid_prob = np.all(raw_scores >= 0) and (0.95 <= np.sum(raw_scores) <= 1.05)
-            if is_valid_prob:
-                probs = raw_scores
+            if model_id == "efficientnetv2b0_256":
+                from app.ml.adapters.efficientnet256_adapter import efficientnet256_adapter
+                x_256 = efficientnet256_adapter.preprocess_image(image_bytes)
+                ad_res = efficientnet256_adapter.predict(model, x_256)
+                pred_idx = ad_res["predicted_index"]
+                top_class = ["glioma", "meningioma", "no_tumor", "pituitary"][pred_idx]
+                display_name = ad_res["predicted_class"]
+                confidence = ad_res["confidence"]
+                raw_scores = ad_res["raw_scores"]
+                probs = np.array(raw_scores, dtype=np.float32)
+                prob_dict = {
+                    "glioma": ad_res["probabilities"]["Glioma"],
+                    "meningioma": ad_res["probabilities"]["Meningioma"],
+                    "no_tumor": ad_res["probabilities"]["No Tumor"],
+                    "pituitary": ad_res["probabilities"]["Pituitary"],
+                }
+                raw_scores_list = [float(s) for s in raw_scores]
+                is_mock = False
             else:
-                exp_scores = np.exp(raw_scores - np.max(raw_scores))
-                probs = exp_scores / np.sum(exp_scores)
+                cls_batch = (preprocessing_service.preprocess_for_swin_transformer(image_bytes)
+                             if model_id == "swin_transformer"
+                             else preprocessing_service.preprocess_for_classifier(image_bytes, use_clahe=use_clahe))
 
-            confidence = float(probs[pred_idx])
-            prob_dict = {cls_name: float(probs[i]) for i, cls_name in enumerate(classes)}
-            raw_scores_list = [float(s) for s in raw_scores]
-            is_mock = False
+                # Raw output from Keras model
+                raw_scores = model(cls_batch, training=False).numpy()[0]
+                pred_idx = int(np.argmax(raw_scores))
+                top_class = classes[pred_idx] if pred_idx < len(classes) else f"class_{pred_idx}"
+
+                # Verify if output is already softmax or raw logits
+                is_valid_prob = np.all(raw_scores >= 0) and (0.95 <= np.sum(raw_scores) <= 1.05)
+                if is_valid_prob:
+                    probs = raw_scores
+                else:
+                    exp_scores = np.exp(raw_scores - np.max(raw_scores))
+                    probs = exp_scores / np.sum(exp_scores)
+
+                confidence = float(probs[pred_idx])
+                prob_dict = {cls_name: float(probs[i]) for i, cls_name in enumerate(classes)}
+                raw_scores_list = [float(s) for s in raw_scores]
+                is_mock = False
 
         else:
             # Model Weights Missing
@@ -109,6 +128,13 @@ class ClassificationService:
             resolution = "224 × 224 × 3 RGB"
             parameters = "28.3M params"
             preprocessing_desc = "Bicubic Interpolation + /255.0 Normalization"
+        elif model_id == "efficientnetv2b0_256":
+            model_name = "EfficientNetV2B0 (CLAHE, 256x256)"
+            model_ver = "v2.5.0-clahe256"
+            architecture = "EfficientNetV2-B0 (Fused-MBConv + Squeeze-and-Excitation)"
+            resolution = "256 × 256 × 3 RGB"
+            parameters = "7.11M params"
+            preprocessing_desc = "Grayscale CLAHE (clip 2.0, grid 8x8) -> Bilinear 256x256 -> Float32 [0, 255] (Model internal normalization)"
         else:
             model_name = "EfficientNetV2B0"
             model_ver = "v2.4.0 (CLAHE-IID)"

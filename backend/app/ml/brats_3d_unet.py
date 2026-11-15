@@ -278,9 +278,32 @@ def extract_tumor_center_patch(image: np.ndarray, mask: np.ndarray) -> Tuple[np.
     return patch_image, patch_mask, (z0, y0, x0)
 
 
+def _interp_matrix(n_in: int, n_out: int) -> np.ndarray:
+    src = np.clip((np.arange(n_out) + 0.5) * (n_in / n_out) - 0.5, 0, n_in - 1)
+    i0 = np.floor(src).astype(int)
+    i1 = np.minimum(i0 + 1, n_in - 1)
+    w1 = (src - i0).astype(np.float32)
+    m = np.zeros((n_out, n_in), np.float32)
+    m[np.arange(n_out), i0] += 1.0 - w1
+    m[np.arange(n_out), i1] += w1
+    return m
+
+
+def resize_trilinear(vol: np.ndarray, out_shape: Tuple[int, int, int]) -> np.ndarray:
+    """
+    Separable trilinear resize of a 3D volume to out_shape (H, W, D).
+    Fixes the notebook bug where depth was mis-scaled by tf.image.resize.
+    """
+    out = np.asarray(vol, np.float32)
+    for axis, n_out in enumerate(out_shape):
+        m = _interp_matrix(out.shape[axis], n_out)
+        out = np.moveaxis(np.tensordot(m, out, axes=([1], [axis])), 0, axis)
+    return out
+
+
 def make_3d_gradcam(model: Any, patch: np.ndarray, class_index: int, layer_name: str = GRAD_CAM_LAYER) -> np.ndarray:
     """
-    Computes 3D Grad-CAM targeting bottleneck_relu2 matching Cell 44.
+    Computes 3D Grad-CAM targeting bottleneck_relu2 matching Cell 44 with fixed trilinear resize.
     Returns normalized 3D heatmap of shape (H, W, D) with values in [0, 1].
     """
     grad_model = tf.keras.models.Model(
@@ -309,20 +332,8 @@ def make_3d_gradcam(model: Any, patch: np.ndarray, class_index: int, layer_name:
     heatmap = tf.reduce_sum(activations * weights[None, None, None, :], axis=-1)
     heatmap = tf.maximum(heatmap, 0).numpy()
 
-    # Resize bottleneck resolution back to input patch resolution
-    # Resize height and width
-    resized_slices = []
-    for d in range(heatmap.shape[2]):
-        slice_2d = tf.image.resize(heatmap[:, :, d, None], patch.shape[:2]).numpy()[:, :, 0]
-        resized_slices.append(slice_2d)
-    heatmap_hw = np.stack(resized_slices, axis=2)
-
-    # Resize depth
-    resized_depth = []
-    for h in range(heatmap_hw.shape[0]):
-        slice_wd = tf.image.resize(heatmap_hw[h, :, :, None], (patch.shape[1], patch.shape[2])).numpy()[:, :, 0]
-        resized_depth.append(slice_wd)
-    heatmap_full = np.stack(resized_depth, axis=0)
+    # Trilinear resize of bottleneck feature map back to patch spatial shape
+    heatmap_full = resize_trilinear(heatmap, patch.shape[:3])
 
     max_val = np.max(heatmap_full)
     if max_val > 0:

@@ -12,7 +12,7 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
-    PROJECT_NAME: str = "NeuroLens AI API"
+    PROJECT_NAME: str = "NeuroScan API"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     API_PREFIX: str = "/api"
@@ -53,8 +53,15 @@ class Settings(BaseSettings):
     _DEFAULT_MODEL_DIR = os.path.join(_BASE_DIR, "model_artifacts") if os.path.exists(os.path.join(_BASE_DIR, "model_artifacts")) else "./model_artifacts"
 
     MODEL_DIR: str = _DEFAULT_MODEL_DIR
+    DEFAULT_CLASSIFIER: str = "efficientnetv2b0_256"
+    ENABLE_LEGACY_MODELS: bool = True
+    ENABLE_SEG_XAI: bool = True
+    ENABLE_3D_UNET: bool = True
     CLASSIFICATION_MODEL_PATH: str = os.path.join(_DEFAULT_MODEL_DIR, "EfficientNetV2B0_clahe_iid_best.keras")
+    CLASSIFICATION_MODEL_256_PATH: str = os.path.join(_DEFAULT_MODEL_DIR, "EfficientNetV2B0_clahe_256.keras")
+    CLASSIFICATION_MODEL_LEGACY_PATH: str = os.path.join(_DEFAULT_MODEL_DIR, "EfficientNetV2B0_clahe_iid_best.keras")
     SEGMENTATION_MODEL_PATH: str = os.path.join(_DEFAULT_MODEL_DIR, "BRISC_Binary_UNet_best.keras")
+    DEEPLAB_MODEL_PATH: str = os.path.join(_DEFAULT_MODEL_DIR, "deeplabv3plus.keras")
     BRATS_3D_UNET_MODEL_PATH: str = os.path.join(_DEFAULT_MODEL_DIR, "brats_3d_unet", "best_3d_unet_model.keras")
     USE_MOCK_MODELS_IN_DEV: bool = True
     IMG_SIZE: int = 128

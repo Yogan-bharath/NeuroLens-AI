@@ -126,6 +126,8 @@ class Segmentation2DService:
         analysis_id: str,
         threshold: float = 0.5,
         min_area_pixels: int = 50,
+        explain: bool = False,
+        explain_layer: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Run actual 2D segmentation inference.
@@ -213,12 +215,82 @@ class Segmentation2DService:
             overlay_bytes, "segmentation_overlay.png", folder=folder
         )
 
+        explain_data: Dict[str, Any] = {}
+        if explain:
+            try:
+                import cv2
+                from app.ml.seg2d_explain import generate_segmentation_explanation
+                target_lyr = explain_layer or "up_sampling2d_2"
+                h, w = original_rgb.shape[:2]
+                # Two separate conversions:
+                # 1) DeepLab model operates on 256x256 input_batch
+                # 2) Rescale mask & CAM heatmap to the native MRI image size (h, w)
+                mask_native = cv2.resize(
+                    binary_mask.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST
+                )
+                exp_res = generate_segmentation_explanation(
+                    model=model,
+                    x_batch=input_batch,
+                    out_size=(h, w),
+                    pred_mask=mask_native,
+                    preferred_layer=target_lyr,
+                )
+                
+                exp_url = None
+                if exp_res.get("available") and exp_res.get("heatmap_png_bytes"):
+                    try:
+                        exp_upload = await imagekit_service.upload_file(
+                            exp_res["heatmap_png_bytes"], "segmentation_heatmap_rgba.png", folder=folder
+                        )
+                        exp_url = exp_upload.get("url")
+                    except Exception as up_err:
+                        logger.warning(f"Failed to upload heatmap to ImageKit: {up_err}")
+                
+                # Use uploaded URL or base64 data URL
+                effective_heatmap = exp_url or exp_res.get("heatmap_png")
+                
+                explain_payload = {
+                    "available": exp_res.get("available", False),
+                    "heatmap_png": effective_heatmap,
+                    "layer": exp_res.get("layer", target_lyr),
+                    "map_shape": exp_res.get("map_shape", "16 × 16 × 256"),
+                    "stats": exp_res.get("stats", {}),
+                    "method": exp_res.get("method", "SEG-GRADCAM"),
+                    "caption": exp_res.get("caption", "Shows which features drove the total predicted tumor area."),
+                    "disclaimer": exp_res.get("disclaimer", "Research/educational use only. Not clinically validated."),
+                }
+                if not exp_res.get("available") and "reason" in exp_res:
+                    explain_payload["reason"] = exp_res["reason"]
+
+                explain_data = {
+                    "explain": explain_payload,
+                    "explain_url": effective_heatmap,
+                    "explain_layer": exp_res.get("layer", target_lyr),
+                    "explain_feature_map": exp_res.get("map_shape", "256 × 256 × 256"),
+                    "explain_caption": exp_res.get("caption", "Shows which features drove the total predicted tumor area."),
+                    "explain_heatmap_png": effective_heatmap,
+                    "explain_stats": exp_res.get("stats", {}),
+                    "explain_available": exp_res.get("available", False),
+                }
+            except Exception as exp_err:
+                logger.warning(f"Seg-Grad-CAM generation failed: {exp_err}")
+                explain_data = {
+                    "explain": {
+                        "available": False,
+                        "reason": f"Seg-Grad-CAM generation error: {exp_err}",
+                        "method": "SEG-GRADCAM",
+                        "heatmap_png": None,
+                        "disclaimer": "Research/educational use only. Not clinically validated.",
+                    },
+                    "explain_available": False,
+                }
+
         logger.info(
             "2D segmentation complete: model=%s, tumor_detected=%s, area=%.2f%%, pixels=%d",
             model_id, tumor_detected, tumor_area_pct, tumor_pixel_count,
         )
 
-        return {
+        result_dict = {
             "mask_url": mask_upload["url"],
             "overlay_url": overlay_upload["url"],
             "model_used": model_id,
@@ -227,6 +299,8 @@ class Segmentation2DService:
             "tumor_pixel_count": tumor_pixel_count,
             "threshold": threshold,
         }
+        result_dict.update(explain_data)
+        return result_dict
 
 
 segmentation_2d_service = Segmentation2DService()

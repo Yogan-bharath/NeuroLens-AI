@@ -1,0 +1,40 @@
+{
+  "efficientnetv2b0_clahe_256": {
+    "display_name": "EfficientNetV2B0 (CLAHE, 256x256)",
+    "file": "EfficientNetV2B0_clahe_256.keras",
+    "input": "256x256 RGB, raw 0-255 after CLAHE (rescaling and ImageNet normalization inside the model)",
+    "classes": ["glioma", "meningioma", "notumor", "pituitary"],
+    "gradcam": {"layer": "top_activation", "feature_map": "8x8x1280"},
+    "test_accuracy": 0.9625,
+    "evaluation": "1,440-image held-out split (360 per class); random per-image split, no patient IDs, no external validation"
+  },
+  "deeplabv3plus": {
+    "display_name": "DeepLabV3+ (ResNet50 backbone)",
+    "file": "deeplabv3plus.keras",
+    "input": "256x256 RGB scaled to [0,1]",
+    "output": "256x256x1 sigmoid, threshold 0.5",
+    "test_dice": 0.848,
+    "test_iou": 0.754,
+    "evaluation": "LGG MRI segmentation dataset, patient-grouped split",
+    "xai": "Seg-Grad-CAM (target = sum of predicted tumor probability)"
+  },
+  "unet3d_brats": {
+    "display_name": "3D U-Net (volumetric)",
+    "file": "brats_3d_unet/best_3d_unet_model.keras",
+    "parameters": 5606628,
+    "input": "96x96x64x4 patches (FLAIR, T1, T1CE, T2), sliding window stride 64x64x32",
+    "evaluation": "BraTS2020, patient-level split, complete-volume sliding-window evaluation on 56 held-out patients",
+    "metrics": {
+      "whole_tumor_dice": 0.829760, "whole_tumor_iou": 0.728292,
+      "tumor_core_dice": 0.696069, "tumor_core_iou": 0.593072,
+      "necrotic_dice": 0.470383, "necrotic_iou": 0.360244,
+      "edema_dice": 0.694502, "edema_iou": 0.572507,
+      "enhancing_dice": 0.641072, "enhancing_iou": 0.544092,
+      "mean_foreground_dice": 0.601986, "mean_foreground_iou": 0.492281,
+      "pixel_accuracy": 0.995746
+    },
+    "comparison_note": "The 2D Attention CNN + ViT whole-tumor Dice of 0.8937 used selected tumor-enriched slices; the protocols differ, so the numbers are not a head-to-head comparison.",
+    "gradcam": {"layer": "bottleneck_relu2", "feature_map": "12x12x8x256", "scope": "96x96x64 tumor-centred patch"},
+    "use": "Research baseline; no external or clinical validation."
+  }
+}

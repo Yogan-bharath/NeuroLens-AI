@@ -25,6 +25,9 @@ import { getAnalysisById, generate2DSegmentation } from '@/services/api';
 import { formatPercentage, formatDate } from '@/lib/utils';
 import ExportReportButton from '@/components/common/ExportReportButton';
 import { extractNormalizedScores } from '@/lib/scoreUtils';
+import { SegExplainViewer } from '@/components/analysis/SegExplainViewer';
+
+const SEGMENTATION_EXPLAIN_LAYER = 'up_sampling2d_2';
 
 export default function Classification2DResultsPage() {
   const { analysisId } = useParams<{ analysisId: string }>();
@@ -36,9 +39,10 @@ export default function Classification2DResultsPage() {
   const [camOpacity, setCamOpacity] = useState<number>(0.65);
   const [showHeatmap, setShowHeatmap] = useState<boolean>(true);
   const [blendMode, setBlendMode] = useState<'screen' | 'overlay' | 'normal'>('screen');
-  const [segViewMode, setSegViewMode] = useState<'overlay' | 'mask'>('overlay');
+  const [segViewMode, setSegViewMode] = useState<'overlay' | 'mask' | 'explain'>('overlay');
   const [isGeneratingSeg, setIsGeneratingSeg] = useState<boolean>(false);
   const [segError, setSegError] = useState<string | null>(null);
+  const [isRefreshingSegExplain, setIsRefreshingSegExplain] = useState<boolean>(false);
 
   useEffect(() => {
     if (!analysisId) {
@@ -120,14 +124,14 @@ export default function Classification2DResultsPage() {
   const confidence = analysisData.confidence || 0.94;
 
   const actualModel = analysisData.actual_model || {};
-  const modelId = actualModel.model_id || analysisData.model_id || (analysisData.model_name?.toLowerCase().includes('swin') ? 'swin_transformer' : 'efficientnetv2b0');
-  const modelName = actualModel.model_name || analysisData.model_name || analysisData.metadata?.modelName || (modelId === 'swin_transformer' ? 'Swin Transformer' : 'EfficientNetV2B0');
-  const modelVersion = actualModel.model_version || analysisData.model_version || analysisData.metadata?.modelVersion || (modelId === 'swin_transformer' ? 'SwinTransformer-224' : 'v2.4.0');
-  const architecture = actualModel.architecture || (modelId === 'swin_transformer' ? 'Hierarchical Shifted-Window Transformer' : 'EfficientNetV2-B0 (Fused-MBConv)');
+  const modelId = actualModel.model_id || analysisData.model_id || (analysisData.model_name?.toLowerCase().includes('swin') ? 'swin_transformer' : (analysisData.model_name?.toLowerCase().includes('256') ? 'efficientnetv2b0_256' : 'efficientnetv2b0'));
+  const modelName = actualModel.model_name || analysisData.model_name || analysisData.metadata?.modelName || (modelId === 'swin_transformer' ? 'Swin Transformer' : (modelId === 'efficientnetv2b0_256' ? 'EfficientNetV2B0 (CLAHE, 256x256)' : 'EfficientNetV2B0'));
+  const modelVersion = actualModel.model_version || analysisData.model_version || analysisData.metadata?.modelVersion || (modelId === 'swin_transformer' ? 'SwinTransformer-224' : (modelId === 'efficientnetv2b0_256' ? 'v2.5.0-clahe256' : 'v2.4.0'));
+  const architecture = actualModel.architecture || (modelId === 'swin_transformer' ? 'Hierarchical Shifted-Window Transformer' : (modelId === 'efficientnetv2b0_256' ? 'EfficientNetV2-B0 (Fused-MBConv + Squeeze-and-Excitation)' : 'EfficientNetV2-B0 (Fused-MBConv)'));
   const framework = actualModel.framework || 'TensorFlow 2.18 / Keras 3';
-  const inputResolution = actualModel.input_resolution || (modelId === 'swin_transformer' ? '224 × 224 × 3 RGB' : '128 × 128 × 3 RGB');
+  const inputResolution = actualModel.input_resolution || (modelId === 'swin_transformer' ? '224 × 224 × 3 RGB' : (modelId === 'efficientnetv2b0_256' ? '256 × 256 × 3 RGB' : '128 × 128 × 3 RGB'));
   const parametersCount = actualModel.parameters_count || (modelId === 'swin_transformer' ? '28.3M params' : '7.11M params');
-  const preprocessing = actualModel.preprocessing || (modelId === 'swin_transformer' ? 'Bicubic Interpolation + /255.0 Normalization' : 'CLAHE Adaptive Histogram Equalization');
+  const preprocessing = actualModel.preprocessing || (modelId === 'swin_transformer' ? 'Bicubic Interpolation + /255.0 Normalization' : (modelId === 'efficientnetv2b0_256' ? 'Grayscale CLAHE -> Bilinear 256x256 -> Float32 [0, 255]' : 'CLAHE Adaptive Histogram Equalization'));
 
   // Probabilities distribution
   const scores = extractNormalizedScores(analysisData);
@@ -138,22 +142,23 @@ export default function Classification2DResultsPage() {
   const segmentationMaskUrl = analysisData.segmentation_mask_url;
   const segmentationModelUsed = analysisData.segmentation_model_used;
   const segmentationTumorAreaPct = analysisData.segmentation_tumor_area_pct;
+  const currentExplainLayer = analysisData.explain_segmentation_layer || analysisData.explain?.layer;
+  const currentExplainUrl =
+    analysisData.explain_segmentation_url ||
+    analysisData.explain_segmentation_heatmap_png ||
+    analysisData.explain?.heatmap_png;
 
   const handleGenerateSegmentation = async () => {
     if (!analysisId || isGeneratingSeg) return;
     setIsGeneratingSeg(true);
     setSegError(null);
     try {
-      const res = await generate2DSegmentation(analysisId);
+      const res = await generate2DSegmentation(analysisId, SEGMENTATION_EXPLAIN_LAYER);
       setAnalysisData((prev: any) =>
         prev
           ? {
               ...prev,
-              segmentation_mask_url: res.segmentation_mask_url,
-              segmentation_overlay_url: res.segmentation_overlay_url,
-              segmentation_model_used: res.segmentation_model_used,
-              segmentation_tumor_detected: res.segmentation_tumor_detected,
-              segmentation_tumor_area_pct: res.segmentation_tumor_area_pct,
+              ...res,
             }
           : prev
       );
@@ -161,6 +166,34 @@ export default function Classification2DResultsPage() {
       setSegError(err instanceof Error ? err.message : 'Failed to generate tumor segmentation.');
     } finally {
       setIsGeneratingSeg(false);
+    }
+  };
+
+  const handleShowSegExplanation = async () => {
+    setSegViewMode('explain');
+    if (
+      !analysisId ||
+      isRefreshingSegExplain ||
+      currentExplainLayer === SEGMENTATION_EXPLAIN_LAYER
+    ) return;
+
+    setSegError(null);
+    setIsRefreshingSegExplain(true);
+    try {
+      const res = await generate2DSegmentation(analysisId, SEGMENTATION_EXPLAIN_LAYER);
+      setAnalysisData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              ...res,
+            }
+          : prev
+      );
+    } catch (err) {
+      console.error('Failed to generate the fine Seg-Grad-CAM explanation', err);
+      setSegError(err instanceof Error ? err.message : 'Failed to generate the Seg-Grad-CAM explanation.');
+    } finally {
+      setIsRefreshingSegExplain(false);
     }
   };
 
@@ -410,34 +443,84 @@ export default function Classification2DResultsPage() {
                   >
                     Binary Mask
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => { void handleShowSegExplanation(); }}
+                    className={`px-2.5 py-0.5 rounded ${segViewMode === 'explain' ? 'bg-neuro-accent text-neuro-bg font-semibold' : 'text-neuro-text-muted hover:text-neuro-text-primary'}`}
+                  >
+                    Explain
+                  </button>
                 </div>
               )}
             </div>
 
+            {segError && (segmentationOverlayUrl || segmentationMaskUrl) && (
+              <p role="alert" className="flex items-start gap-2 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{segError}</span>
+              </p>
+            )}
+
             {segmentationOverlayUrl || segmentationMaskUrl ? (
-              <>
-                <div className="relative aspect-square max-h-[400px] w-full rounded-lg bg-black overflow-hidden border border-neuro-border flex items-center justify-center">
-                  <img
-                    src={segViewMode === 'mask' ? (segmentationMaskUrl || segmentationOverlayUrl) : (segmentationOverlayUrl || segmentationMaskUrl)}
-                    alt="Predicted Tumor Segmentation"
-                    className="w-full h-full object-contain"
-                  />
-                  <div className="absolute top-2 left-2 pointer-events-none font-mono text-[10px] text-red-400 bg-black/70 px-2 py-1 rounded border border-white/10">
-                    <div>SEGMENTATION MASK</div>
-                    <div className="text-neuro-text-muted">
-                      MODE: {segViewMode === 'mask' ? 'BINARY MASK' : 'MRI + TUMOR OVERLAY'}
+              segViewMode === 'explain' ? (
+                <SegExplainViewer
+                  originalImage={originalImage}
+                  heatmapUrl={currentExplainLayer === SEGMENTATION_EXPLAIN_LAYER ? currentExplainUrl : undefined}
+                  maskUrl={segmentationMaskUrl}
+                  featureMapShape={
+                    currentExplainLayer === SEGMENTATION_EXPLAIN_LAYER
+                      ? analysisData.explain_segmentation_feature_map ||
+                        analysisData.explain?.map_shape ||
+                        '256 × 256 × 256'
+                      : '256 × 256 × 256'
+                  }
+                  isAvailable={
+                    currentExplainLayer === SEGMENTATION_EXPLAIN_LAYER &&
+                    analysisData.explain_segmentation_available !== false &&
+                    analysisData.explain?.available !== false
+                  }
+                  unavailableReason={
+                    segError || analysisData.explain?.reason || analysisData.explain_segmentation_reason
+                  }
+                  blendMode={blendMode}
+                  opacity={camOpacity}
+                  stats={
+                    analysisData.explain_segmentation_stats || analysisData.explain?.stats
+                  }
+                  isLoading={isRefreshingSegExplain}
+                />
+              ) : (
+                <>
+                  <div className="relative aspect-square max-h-[400px] w-full rounded-lg bg-black overflow-hidden border border-neuro-border flex items-center justify-center">
+                    <img
+                      src={
+                        segViewMode === 'mask'
+                          ? (segmentationMaskUrl || segmentationOverlayUrl)
+                          : (segmentationOverlayUrl || segmentationMaskUrl)
+                      }
+                      alt="Predicted Tumor Segmentation"
+                      className="w-full h-full object-contain"
+                    />
+                    <div className="absolute top-2 left-2 pointer-events-none font-mono text-[10px] text-red-400 bg-black/70 px-2 py-1 rounded border border-white/10">
+                      <div>SEGMENTATION MASK</div>
+                      <div className="text-neuro-text-muted">
+                        {segViewMode === 'mask' ? 'MODE: BINARY MASK' : 'MODE: MRI + TUMOR OVERLAY'}
+                      </div>
                     </div>
+                    {typeof segmentationTumorAreaPct === 'number' && (
+                      <div className="absolute bottom-2 right-2 pointer-events-none font-mono text-[10px] text-white bg-black/70 px-2 py-0.5 rounded border border-white/10">
+                        TUMOR AREA: <span className="text-red-400 font-bold">{segmentationTumorAreaPct.toFixed(2)}%</span>
+                      </div>
+                    )}
                   </div>
-                  {typeof segmentationTumorAreaPct === 'number' && (
-                    <div className="absolute bottom-2 right-2 pointer-events-none font-mono text-[10px] text-white bg-black/70 px-2 py-0.5 rounded border border-white/10">
-                      TUMOR AREA: <span className="text-red-400 font-bold">{segmentationTumorAreaPct.toFixed(2)}%</span>
-                    </div>
-                  )}
-                </div>
-                <p className="text-[11px] text-neuro-text-muted">
-                  Red highlight and amber contour indicate the tumor region predicted by the segmentation model (threshold &gt; 0.5, independent of Grad-CAM).
-                </p>
-              </>
+                  <p className="text-[11px] text-neuro-text-muted">
+                    Red highlight and amber contour indicate the tumor region predicted by the segmentation model (threshold &gt; 0.5, independent of Grad-CAM).
+                  </p>
+                  <div className="text-[10px] text-amber-400/90 font-mono bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded">
+                    Research/educational use only. Not clinically validated.
+                  </div>
+                </>
+              )
             ) : (
               <div className="p-6 rounded-lg bg-black/40 border border-neuro-border/60 text-center space-y-3">
                 <Scan className="w-8 h-8 text-neuro-text-muted mx-auto opacity-50" />
@@ -445,12 +528,24 @@ export default function Classification2DResultsPage() {
                   <p className="text-xs font-semibold text-neuro-text-primary">
                     Tumor Segmentation Mask Not Generated Yet
                   </p>
-                  <p className="text-[11px] text-neuro-text-muted">
-                    Run the 2D segmentation model (DeepLabV3+ / BRISC U-Net) on this MRI slice to highlight the predicted tumor region.
-                  </p>
+                  {isGeneratingSeg ? (
+                    <div role="status" aria-live="polite" className="flex flex-col items-center gap-2 py-3">
+                      <Loader2 className="h-8 w-8 animate-spin text-neuro-accent" />
+                      <p className="text-xs font-semibold text-neuro-text-primary">
+                        Generating tumor mask and explanation…
+                      </p>
+                      <p className="text-[11px] text-neuro-text-muted">
+                        The segmentation model may take a little while to respond. Keep this page open.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-neuro-text-muted">
+                      Run the 2D segmentation model (DeepLabV3+ / BRISC U-Net) on this MRI slice to highlight the predicted tumor region.
+                    </p>
+                  )}
                 </div>
                 {segError && (
-                  <p className="text-xs text-red-400 font-mono">{segError}</p>
+                  <p role="alert" className="text-xs text-red-400 font-mono">{segError}</p>
                 )}
                 <button
                   type="button"

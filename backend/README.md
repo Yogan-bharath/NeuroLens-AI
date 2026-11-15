@@ -1,6 +1,6 @@
-# NeuroLens AI — Production Backend
+# NeuroScan — Production Backend
 
-A high-performance, modular backend for **NeuroLens AI**, a brain MRI tumor classification, segmentation, and explainable AI (XAI) research platform.
+A high-performance, modular backend for **NeuroScan**, a brain MRI tumor classification, segmentation, and explainable AI (XAI) research platform.
 
 Built with **FastAPI**, **MongoDB Atlas**, **ImageKit**, **Pydantic v2**, and **TensorFlow / Keras**.
 
@@ -130,7 +130,7 @@ Per project constraints, trained model files are stored in external artifact sto
 - `GET /api/v1/analysis/{id}` — Maps directly to `get_analysis_by_id`.
 - `GET /api/v1/history` — Maps directly to `get_history_list`.
 - `GET /api/v1/model/metrics` — Maps directly to `get_performance_summary`.
-- `POST /api/v1/chat` — NeuroLens AI Copilot natural language responses.
+- `POST /api/v1/chat` — NeuroScan Copilot natural language responses.
 
 ---
 

@@ -1,5 +1,5 @@
 """
-NeuroLens AI Persistent File Storage Service
+NeuroScan Persistent File Storage Service
 Manages local and cloud asset persistence with clear separation:
 - uploads: Original 2D MRI scans (PNG, JPG, JPEG)
 - heatmaps: Grad-CAM and XAI saliency heatmaps

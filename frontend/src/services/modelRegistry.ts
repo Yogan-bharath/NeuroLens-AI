@@ -9,13 +9,43 @@ import type {
 // ─── Classification Models Registry ───────────────────────────────────────
 export const classificationModelsRegistry: ClassificationModel[] = [
   {
+    id: 'efficientnetv2b0_256',
+    name: 'EfficientNetV2B0 (CLAHE, 256x256)',
+    architecture: 'EfficientNetV2-B0 (Fused-MBConv + Squeeze-and-Excitation)',
+    description: 'High-resolution four-class brain tumor classifier with native-resolution grayscale CLAHE and internal normalization. Test accuracy: 96.25% (held-out split: random per-image split, no patient IDs, no external validation). Research/educational use only. Not clinically validated.',
+    task: 'classification',
+    version: 'v2.5.0-clahe256',
+    status: 'available',
+    metrics: {
+      testAccuracy: 0.9625,
+      macroPrecision: 0.961,
+      macroRecall: 0.960,
+      macroF1: 0.960,
+      inferenceTimeMs: 42,
+      evaluationDataset: 'Held-out test split (1,440 images; random per-image split, no patient IDs, no external validation)',
+    },
+    supportedXaiMethods: ['gradcam', 'gradcam_pp'],
+    compatibleLayers: [
+      {
+        id: 'top_activation',
+        name: 'top_activation',
+        description: 'Final top activation layer before global pooling (8 × 8 × 1280)',
+        isVerified: true,
+        depthDescription: 'Resolution: 8 × 8 × 1280',
+      },
+    ],
+    outputClasses: ['Glioma', 'Meningioma', 'No Tumor', 'Pituitary'],
+    parametersCount: '7.11M params',
+  },
+  {
     id: 'efficientnetv2b0',
-    name: 'EfficientNetV2B0',
+    name: 'EfficientNetV2B0 (Legacy 128x128)',
     architecture: 'EfficientNetV2-B0 (Fused-MBConv)',
-    description: 'A convolutional neural network optimized for four-class brain MRI classification with fast convergence and low parameter footprint.',
+    description: 'Legacy 128x128 classification model. Replaced by EfficientNetV2B0 (CLAHE, 256x256).',
     task: 'classification',
     version: 'v2.4.0',
-    status: 'available',
+    status: 'unavailable',
+    statusReason: 'Legacy model deprecated in favor of EfficientNetV2B0 (CLAHE, 256x256)',
     metrics: {
       testAccuracy: 0.941,
       macroPrecision: 0.938,
