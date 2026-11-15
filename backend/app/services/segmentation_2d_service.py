@@ -126,6 +126,8 @@ class Segmentation2DService:
         analysis_id: str,
         threshold: float = 0.5,
         min_area_pixels: int = 50,
+        explain: bool = False,
+        explain_layer: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Run actual 2D segmentation inference.
@@ -213,12 +215,36 @@ class Segmentation2DService:
             overlay_bytes, "segmentation_overlay.png", folder=folder
         )
 
+        explain_data: Dict[str, Any] = {}
+        if explain:
+            try:
+                from app.ml.adapters.seg2d_xai_adapter import seg2d_xai_adapter
+                target_lyr = explain_layer or "conv2d_20"
+                seg_cam, res_lyr, feat_dim = seg2d_xai_adapter.explain(
+                    model, input_batch, layer_name=target_lyr, out_size=(original_rgb.shape[1], original_rgb.shape[0])
+                )
+                _, explain_overlay_bytes = preprocessing_service.overlay_heatmap_on_image(
+                    image_bytes, seg_cam, alpha=0.45
+                )
+                explain_upload = await imagekit_service.upload_file(
+                    explain_overlay_bytes, "segmentation_explain_overlay.png", folder=folder
+                )
+                explain_data = {
+                    "explain_url": explain_upload["url"],
+                    "explain_layer": res_lyr,
+                    "explain_feature_map": f"{feat_dim[0]} × {feat_dim[1]} × {feat_dim[2]}",
+                    "explain_caption": "Shows which features drove the total predicted tumor area.",
+                    "disclaimer": "Research/educational use only. Not clinically validated.",
+                }
+            except Exception as exp_err:
+                logger.warning(f"Seg-Grad-CAM generation failed: {exp_err}")
+
         logger.info(
             "2D segmentation complete: model=%s, tumor_detected=%s, area=%.2f%%, pixels=%d",
             model_id, tumor_detected, tumor_area_pct, tumor_pixel_count,
         )
 
-        return {
+        result_dict = {
             "mask_url": mask_upload["url"],
             "overlay_url": overlay_upload["url"],
             "model_used": model_id,
@@ -227,6 +253,8 @@ class Segmentation2DService:
             "tumor_pixel_count": tumor_pixel_count,
             "threshold": threshold,
         }
+        result_dict.update(explain_data)
+        return result_dict
 
 
 segmentation_2d_service = Segmentation2DService()

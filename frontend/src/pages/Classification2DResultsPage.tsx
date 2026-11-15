@@ -36,7 +36,7 @@ export default function Classification2DResultsPage() {
   const [camOpacity, setCamOpacity] = useState<number>(0.65);
   const [showHeatmap, setShowHeatmap] = useState<boolean>(true);
   const [blendMode, setBlendMode] = useState<'screen' | 'overlay' | 'normal'>('screen');
-  const [segViewMode, setSegViewMode] = useState<'overlay' | 'mask'>('overlay');
+  const [segViewMode, setSegViewMode] = useState<'overlay' | 'mask' | 'explain'>('overlay');
   const [isGeneratingSeg, setIsGeneratingSeg] = useState<boolean>(false);
   const [segError, setSegError] = useState<string | null>(null);
 
@@ -120,14 +120,14 @@ export default function Classification2DResultsPage() {
   const confidence = analysisData.confidence || 0.94;
 
   const actualModel = analysisData.actual_model || {};
-  const modelId = actualModel.model_id || analysisData.model_id || (analysisData.model_name?.toLowerCase().includes('swin') ? 'swin_transformer' : 'efficientnetv2b0');
-  const modelName = actualModel.model_name || analysisData.model_name || analysisData.metadata?.modelName || (modelId === 'swin_transformer' ? 'Swin Transformer' : 'EfficientNetV2B0');
-  const modelVersion = actualModel.model_version || analysisData.model_version || analysisData.metadata?.modelVersion || (modelId === 'swin_transformer' ? 'SwinTransformer-224' : 'v2.4.0');
-  const architecture = actualModel.architecture || (modelId === 'swin_transformer' ? 'Hierarchical Shifted-Window Transformer' : 'EfficientNetV2-B0 (Fused-MBConv)');
+  const modelId = actualModel.model_id || analysisData.model_id || (analysisData.model_name?.toLowerCase().includes('swin') ? 'swin_transformer' : (analysisData.model_name?.toLowerCase().includes('256') ? 'efficientnetv2b0_256' : 'efficientnetv2b0'));
+  const modelName = actualModel.model_name || analysisData.model_name || analysisData.metadata?.modelName || (modelId === 'swin_transformer' ? 'Swin Transformer' : (modelId === 'efficientnetv2b0_256' ? 'EfficientNetV2B0 (CLAHE, 256x256)' : 'EfficientNetV2B0'));
+  const modelVersion = actualModel.model_version || analysisData.model_version || analysisData.metadata?.modelVersion || (modelId === 'swin_transformer' ? 'SwinTransformer-224' : (modelId === 'efficientnetv2b0_256' ? 'v2.5.0-clahe256' : 'v2.4.0'));
+  const architecture = actualModel.architecture || (modelId === 'swin_transformer' ? 'Hierarchical Shifted-Window Transformer' : (modelId === 'efficientnetv2b0_256' ? 'EfficientNetV2-B0 (Fused-MBConv + Squeeze-and-Excitation)' : 'EfficientNetV2-B0 (Fused-MBConv)'));
   const framework = actualModel.framework || 'TensorFlow 2.18 / Keras 3';
-  const inputResolution = actualModel.input_resolution || (modelId === 'swin_transformer' ? '224 × 224 × 3 RGB' : '128 × 128 × 3 RGB');
+  const inputResolution = actualModel.input_resolution || (modelId === 'swin_transformer' ? '224 × 224 × 3 RGB' : (modelId === 'efficientnetv2b0_256' ? '256 × 256 × 3 RGB' : '128 × 128 × 3 RGB'));
   const parametersCount = actualModel.parameters_count || (modelId === 'swin_transformer' ? '28.3M params' : '7.11M params');
-  const preprocessing = actualModel.preprocessing || (modelId === 'swin_transformer' ? 'Bicubic Interpolation + /255.0 Normalization' : 'CLAHE Adaptive Histogram Equalization');
+  const preprocessing = actualModel.preprocessing || (modelId === 'swin_transformer' ? 'Bicubic Interpolation + /255.0 Normalization' : (modelId === 'efficientnetv2b0_256' ? 'Grayscale CLAHE -> Bilinear 256x256 -> Float32 [0, 255]' : 'CLAHE Adaptive Histogram Equalization'));
 
   // Probabilities distribution
   const scores = extractNormalizedScores(analysisData);
@@ -410,6 +410,13 @@ export default function Classification2DResultsPage() {
                   >
                     Binary Mask
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setSegViewMode('explain')}
+                    className={`px-2.5 py-0.5 rounded ${segViewMode === 'explain' ? 'bg-neuro-accent text-neuro-bg font-semibold' : 'text-neuro-text-muted hover:text-neuro-text-primary'}`}
+                  >
+                    Explain
+                  </button>
                 </div>
               )}
             </div>
@@ -418,14 +425,20 @@ export default function Classification2DResultsPage() {
               <>
                 <div className="relative aspect-square max-h-[400px] w-full rounded-lg bg-black overflow-hidden border border-neuro-border flex items-center justify-center">
                   <img
-                    src={segViewMode === 'mask' ? (segmentationMaskUrl || segmentationOverlayUrl) : (segmentationOverlayUrl || segmentationMaskUrl)}
+                    src={
+                      segViewMode === 'explain'
+                        ? (analysisData.explain_segmentation_url || segmentationOverlayUrl)
+                        : (segViewMode === 'mask' ? (segmentationMaskUrl || segmentationOverlayUrl) : (segmentationOverlayUrl || segmentationMaskUrl))
+                    }
                     alt="Predicted Tumor Segmentation"
                     className="w-full h-full object-contain"
                   />
                   <div className="absolute top-2 left-2 pointer-events-none font-mono text-[10px] text-red-400 bg-black/70 px-2 py-1 rounded border border-white/10">
-                    <div>SEGMENTATION MASK</div>
+                    <div>{segViewMode === 'explain' ? 'SEG-GRAD-CAM EXPLAIN' : 'SEGMENTATION MASK'}</div>
                     <div className="text-neuro-text-muted">
-                      MODE: {segViewMode === 'mask' ? 'BINARY MASK' : 'MRI + TUMOR OVERLAY'}
+                      {segViewMode === 'explain'
+                        ? `LAYER: ${analysisData.explain_segmentation_layer || 'conv2d_20'} · MAP: ${analysisData.explain_segmentation_feature_map || '16 × 16 × 256'}`
+                        : (segViewMode === 'mask' ? 'MODE: BINARY MASK' : 'MODE: MRI + TUMOR OVERLAY')}
                     </div>
                   </div>
                   {typeof segmentationTumorAreaPct === 'number' && (
@@ -435,8 +448,13 @@ export default function Classification2DResultsPage() {
                   )}
                 </div>
                 <p className="text-[11px] text-neuro-text-muted">
-                  Red highlight and amber contour indicate the tumor region predicted by the segmentation model (threshold &gt; 0.5, independent of Grad-CAM).
+                  {segViewMode === 'explain'
+                    ? (analysisData.explain_segmentation_caption || 'Shows which features drove the total predicted tumor area.')
+                    : 'Red highlight and amber contour indicate the tumor region predicted by the segmentation model (threshold > 0.5, independent of Grad-CAM).'}
                 </p>
+                <div className="text-[10px] text-amber-400/90 font-mono bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded">
+                  Research/educational use only. Not clinically validated.
+                </div>
               </>
             ) : (
               <div className="p-6 rounded-lg bg-black/40 border border-neuro-border/60 text-center space-y-3">
