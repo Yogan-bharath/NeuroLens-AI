@@ -961,16 +961,30 @@ class Brats3DSegmentationService:
         duration_ms = int((time.perf_counter() - start_time) * 1000)
 
         # Build immutable 3D segmentation model metadata snapshot
-        if len(model_in_shape) == 5:
-            model_name = "BraTS 3D Volumetric U-Net"
-            arch_title = "Custom 3D Residual U-Net (3D Patch Convolutions + Deep Supervision)"
-            param_count = "16.4M params"
-            version_str = "v2.4.0 (BraTS-3D)"
+        if model_id == "unet3d_brats" or len(model_in_shape) == 5:
+            model_name = "3D U-Net (volumetric)"
+            arch_title = "3D Encoder-Decoder Convolutional Network (Conv3D + BatchNorm)"
+            param_count = "5.61M params (5,606,628)"
+            version_str = "BraTS-3D-UNet-v1"
+            banner_text = "GENUINE MODEL PREDICTION - 3D GRAD-CAM (BOTTLENECK, PATCH-LEVEL)"
+            provenance_info = {
+                "cohort": "BraTS 2020, patient-level split, complete-volume sliding-window evaluation on 56 held-out patients",
+                "whole_tumor_dice": 0.829760,
+                "tumor_core_dice": 0.696069,
+                "necrotic_dice": 0.470383,
+                "edema_dice": 0.694502,
+                "enhancing_dice": 0.641072,
+                "mean_foreground_dice": 0.601986,
+                "pixel_accuracy": 0.995746,
+                "comparison_note": "The 2D Attention CNN + ViT whole-tumor Dice of 0.8937 used selected tumor-enriched slices; the protocols differ, so the numbers are not a head-to-head comparison.",
+            }
         else:
-            model_name = "Attention CNN + Vision Transformer"
+            model_name = "Attention CNN + Vision Transformer (2D)"
             arch_title = "Hybrid Attention CNN + Vision Transformer (Additive Attention Gates + Transformer Bottleneck)"
             param_count = "3.07M params"
             version_str = "v2.4.0 (BraTS-Multimodal)"
+            banner_text = None
+            provenance_info = None
 
         now_iso = datetime.now(timezone.utc).isoformat()
         actual_model = {
@@ -997,6 +1011,8 @@ class Brats3DSegmentationService:
             "model_id": model_id,
             "model_name": model_name,
             "model_version": version_str,
+            "banner": banner_text,
+            "provenance": provenance_info,
             "actual_model": actual_model,
             "volume_dimensions": [int(H), int(W), int(D)],
             "voxel_spacing": [round(float(z), 3) for z in zooms],
@@ -1011,10 +1027,7 @@ class Brats3DSegmentationService:
             "surface_3d": surface_3d,
             "evaluation_metrics": evaluation_metrics,
             "explainability": explainability_data,
-            "disclaimer": (
-                "Research model output only. Not approved for clinical diagnostics or therapeutic decision-making. "
-                "Trained on BraTS 2020 multimodal volumetric MRI benchmark dataset."
-            ),
+            "disclaimer": "Research/educational use only. Not clinically validated.",
         }
 
     def get_prediction_bytes(self, prediction_id: str) -> Optional[Tuple[bytes, str]]:
